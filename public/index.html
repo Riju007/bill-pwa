@@ -9,19 +9,21 @@
 
 <body>
     <h1 id="heading">Billing Software</h1>
-    <button id="test-btn">Test Button</button>
+    <p id="time">Get Current Time:
+        <button id="test-btn">Click Me</button>
+    </p>
     <script>
         const btn = document.querySelector("#test-btn")
         btn.addEventListener("click", () => {
-            const headingContent = document.querySelector("#heading")
+            const headingContent = document.querySelector("#time")
             const content = new Date().toLocaleString(
-                "en-In",
+                "en-IN",
                 {
                     "timeZone": "Asia/Kolkata",
                     "timeZoneName": "short"
                 }
             );
-            headingContent.textContent = content
+            headingContent.textContent = "Current Time is:" + content
         })
     </script>
 </body>
