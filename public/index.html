@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home | Dashboard</title>
+</head>
+
+<body>
+    <h1 id="heading">Billing Software</h1>
+    <button id="test-btn">Test Button</button>
+    <script>
+        const btn = document.querySelector("#test-btn")
+        btn.addEventListener("click", () => {
+            const headingContent = document.querySelector("#heading")
+            const content = new Date().toLocaleString(
+                "en-In",
+                {
+                    "timeZone": "Asia/Kolkata",
+                    "timeZoneName": "short"
+                }
+            );
+            headingContent.textContent = content
+        })
+    </script>
+</body>
+
+</html>
