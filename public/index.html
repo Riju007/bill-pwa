@@ -9,9 +9,8 @@
 
 <body>
     <h1 id="heading">Billing Software</h1>
-    <p id="time">Get Current Time:
-        <button id="test-btn">Click Me</button>
-    </p>
+    <p id="time">Get Current Time</p>
+    <button id="test-btn">Click Me</button>
     <script>
         const btn = document.querySelector("#test-btn")
         btn.addEventListener("click", () => {
@@ -23,7 +22,7 @@
                     "timeZoneName": "short"
                 }
             );
-            headingContent.textContent = "Current Time is:" + content
+            headingContent.textContent = "Current Time is: " + content
         })
     </script>
 </body>
