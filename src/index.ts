@@ -8,6 +8,11 @@ interface CustomerInput {
     address: string | null;
 }
 
+interface ProductInput {
+    code: string | null;
+    name: string;
+}
+
 function json(data: unknown, status = 200): Response {
     return Response.json(data, { status });
 }
@@ -16,11 +21,19 @@ function text(v: unknown): string | null {
     return typeof v === "string" && v.trim() !== "" ? v.trim() : null;
 }
 
-function parseCustomer(body: unknown): Parsed<CustomerInput> {
-    if (typeof body !== "object" || body === null) {
-        return { ok: false, error: "Body must be a JSON object" };
+async function readJson(request: Request): Promise<Parsed<Record<string, unknown>>> {
+    try {
+        const body = await request.json();
+        if (typeof body !== "object" || body === null || Array.isArray(body)) {
+            return { ok: false, error: "Body must be a JSON object" };
+        }
+        return { ok: true, value: body as Record<string, unknown> };
+    } catch {
+        return { ok: false, error: "Invalid JSON" };
     }
-    const b = body as Record<string, unknown>;
+}
+
+function parseCustomer(b: Record<string, unknown>): Parsed<CustomerInput> {
     const name = text(b.name);
     const mobile = text(b.mobile);
     const code = text(b.code);
@@ -39,6 +52,19 @@ function parseCustomer(body: unknown): Parsed<CustomerInput> {
         return { ok: false, error: "address must be at most 300 characters" };
     }
     return { ok: true, value: { code, name, mobile, address } };
+}
+
+function parseProduct(b: Record<string, unknown>): Parsed<ProductInput> {
+    const name = text(b.name);
+    const code = text(b.code);
+
+    if (!name || name.length > 100) {
+        return { ok: false, error: "name is required (max 100 characters)" };
+    }
+    if (code && code.length > 20) {
+        return { ok: false, error: "code must be at most 20 characters" };
+    }
+    return { ok: true, value: { code, name } };
 }
 
 export default {
@@ -60,13 +86,9 @@ export default {
 
         if (url.pathname === "/api/customers") {
             if (request.method === "POST") {
-                let body: unknown;
-                try {
-                    body = await request.json();
-                } catch {
-                    return json({ error: "Invalid JSON" }, 400);
-                }
-                const parsed = parseCustomer(body);
+                const body = await readJson(request);
+                if (!body.ok) return json({ error: body.error }, 400);
+                const parsed = parseCustomer(body.value);
                 if (!parsed.ok) return json({ error: parsed.error }, 400);
 
                 const c = parsed.value;
@@ -84,6 +106,36 @@ export default {
                     ? env.DB
                         .prepare(`${base} WHERE code = ? OR mobile = ? OR name LIKE ? ORDER BY id DESC LIMIT 100`)
                         .bind(q, q, `%${q}%`)
+                    : env.DB.prepare(`${base} ORDER BY id DESC LIMIT 100`);
+                const { results } = await stmt.all();
+                return json(results);
+            }
+
+            return json({ error: "Method not allowed" }, 405);
+        }
+
+        if (url.pathname === "/api/products") {
+            if (request.method === "POST") {
+                const body = await readJson(request);
+                if (!body.ok) return json({ error: body.error }, 400);
+                const parsed = parseProduct(body.value);
+                if (!parsed.ok) return json({ error: parsed.error }, 400);
+
+                const p = parsed.value;
+                const result = await env.DB
+                    .prepare("INSERT INTO products (code, name) VALUES (?, ?)")
+                    .bind(p.code, p.name)
+                    .run();
+                return json({ id: result.meta.last_row_id, ...p }, 201);
+            }
+
+            if (request.method === "GET") {
+                const q = url.searchParams.get("q")?.trim();
+                const base = "SELECT id, code, name FROM products";
+                const stmt = q
+                    ? env.DB
+                        .prepare(`${base} WHERE code = ? OR name LIKE ? ORDER BY id DESC LIMIT 100`)
+                        .bind(q, `%${q}%`)
                     : env.DB.prepare(`${base} ORDER BY id DESC LIMIT 100`);
                 const { results } = await stmt.all();
                 return json(results);
