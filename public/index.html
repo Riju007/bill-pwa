@@ -372,6 +372,58 @@
             height: 17px;
         }
 
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .action-button {
+            display: grid;
+            width: 34px;
+            min-height: 34px;
+            place-items: center;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            color: var(--muted);
+            background: var(--surface);
+        }
+
+        .action-button:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .action-button.delete:hover {
+            color: var(--red);
+            border-color: var(--red);
+        }
+
+        .action-button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .operation-feedback {
+            margin: -4px 0 14px;
+            font-size: 13px;
+        }
+
+        .operation-feedback:empty {
+            display: none;
+        }
+
+        .operation-feedback.error,
+        .field-error,
+        .item-validation {
+            color: var(--red);
+        }
+
+        .operation-feedback.success {
+            color: var(--primary);
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -501,6 +553,66 @@
             font-weight: 750;
         }
 
+        .bill-link {
+            padding: 0;
+            border: 0;
+            color: var(--primary-dark);
+            background: transparent;
+            font-weight: 750;
+            text-align: left;
+        }
+
+        .bill-link:hover {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .dashboard-directories {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .latest-list {
+            padding: 0 20px;
+        }
+
+        .latest-entry {
+            display: flex;
+            min-height: 62px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .latest-entry:last-child {
+            border-bottom: 0;
+        }
+
+        .latest-entry strong {
+            display: block;
+            overflow: hidden;
+            color: var(--ink);
+            font-size: 13px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .latest-entry span {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .latest-empty {
+            padding: 20px 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
         .status {
             display: inline-flex;
             align-items: center;
@@ -605,6 +717,21 @@
             font-weight: 700;
         }
 
+        .required-mark {
+            color: var(--red);
+        }
+
+        .field-error,
+        .item-validation {
+            margin: 0;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        [aria-invalid="true"] {
+            border-color: var(--red) !important;
+        }
+
         .field input,
         .field select,
         .field textarea,
@@ -645,22 +772,80 @@
         }
 
         .items-head {
-            display: grid;
-            grid-template-columns: minmax(130px, 1.1fr) minmax(130px, 1.3fr) minmax(112px, 1fr) minmax(95px, .7fr) 38px;
-            gap: 9px;
-            padding: 0 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .items-head-title {
             color: var(--muted);
-            font-size: 10px;
-            font-weight: 750;
-            letter-spacing: .08em;
-            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .table-add-item {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 0 12px;
+            border: 1px solid var(--primary);
+            border-radius: 9px;
+            color: var(--primary);
+            background: var(--surface);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .table-add-item svg {
+            width: 18px;
+            height: 18px;
         }
 
         .item-row {
             display: grid;
-            grid-template-columns: minmax(130px, 1.1fr) minmax(130px, 1.3fr) minmax(112px, 1fr) minmax(95px, .7fr) 38px;
-            gap: 9px;
-            margin-bottom: 10px;
+            grid-template-columns: minmax(150px, 1.35fr) minmax(125px, .75fr) minmax(125px, .8fr) minmax(105px, .65fr) 38px;
+            align-items: end;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #fcfcfe;
+        }
+
+        .item-field {
+            display: grid;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .item-field label {
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .item-row select {
+            width: 100%;
+            min-width: 0;
+            min-height: 42px;
+            padding: 9px 10px;
+            border: 1px solid #dfe2eb;
+            border-radius: 9px;
+            color: var(--ink);
+            background: #fff;
+            font-size: 12px;
+        }
+
+        .item-validation {
+            grid-column: 1 / -1;
+            margin-top: -3px;
         }
 
         .item-row input {
@@ -877,6 +1062,10 @@
             font-size: 12px;
         }
 
+        .summary-paid .field-error {
+            grid-column: 1 / -1;
+        }
+
         .preview-content {
             padding: 22px;
         }
@@ -941,7 +1130,6 @@
                 grid-template-columns: minmax(0, 1fr) 275px;
             }
 
-            .items-head,
             .item-row {
                 grid-template-columns: minmax(95px, 1fr) minmax(110px, 1.2fr) minmax(95px, 1fr) minmax(80px, .7fr) 36px;
                 gap: 7px;
@@ -976,6 +1164,10 @@
             }
 
             .form-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-directories {
                 grid-template-columns: 1fr;
             }
 
@@ -1101,11 +1293,16 @@
             }
 
             .items-head {
-                display: none;
+                display: flex;
+                justify-content: flex-end;
+                padding: 0 0 9px;
+            }
+
+            .items-head-title {
+                margin-right: auto;
             }
 
             .item-row {
-                position: relative;
                 grid-template-columns: 1fr 1fr;
                 gap: 9px;
                 padding: 12px;
@@ -1114,8 +1311,23 @@
                 background: #fbfbfd;
             }
 
+            .item-field:nth-child(1) {
+                grid-column: 1 / -1;
+            }
+
+            .item-field:nth-child(4) {
+                grid-column: 1;
+            }
+
             .item-row input {
                 min-height: 43px;
+                font-size: 12px;
+            }
+
+            .item-row select {
+                grid-column: 1 / -1;
+                min-height: 43px;
+                padding-right: 47px;
                 font-size: 12px;
             }
 
@@ -1125,11 +1337,10 @@
             }
 
             .remove-item {
-                position: absolute;
-                top: 8px;
-                right: 8px;
                 width: 34px;
                 min-height: 34px;
+                align-self: end;
+                justify-self: end;
                 background: #fff;
             }
 
@@ -1265,11 +1476,27 @@
             color: #c4d4c9;
         }
 
+        :root[data-theme="dark"] .action-button {
+            border-color: var(--line);
+            color: var(--muted);
+            background: #15231a;
+        }
+
+        :root[data-theme="dark"] .action-button.delete:hover {
+            color: #ff8591;
+            border-color: #ff8591;
+        }
+
+        :root[data-theme="dark"] .operation-feedback.success {
+            color: #63d994;
+        }
+
         :root[data-theme="dark"] .field input,
         :root[data-theme="dark"] .field select,
         :root[data-theme="dark"] .field textarea,
         :root[data-theme="dark"] .search-box input,
         :root[data-theme="dark"] .item-row input,
+        :root[data-theme="dark"] .item-row select,
         :root[data-theme="dark"] .summary-paid input {
             border-color: #344a3a;
             color: var(--ink);
@@ -1377,7 +1604,7 @@
                 </div>
                 <span class="today" id="today-label"></span>
                 <div class="topbar-actions">
-                    <span class="today">Demo Mobile Shop</span>
+                    <span class="today">Pabitra Online Service</span>
                     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg>
                         <span class="theme-toggle-label">Dark theme</span>
@@ -1455,6 +1682,27 @@
                             </table>
                         </div>
                     </section>
+
+                    <div class="dashboard-directories">
+                        <section class="panel" aria-labelledby="latest-customers-title">
+                            <div class="panel-header">
+                                <h2 id="latest-customers-title">Latest customers</h2>
+                                <button class="button ghost" type="button" data-go="customers">View all</button>
+                            </div>
+                            <div class="latest-list" id="latest-customers" aria-live="polite">
+                                <p class="latest-empty">Loading customers…</p>
+                            </div>
+                        </section>
+                        <section class="panel" aria-labelledby="latest-products-title">
+                            <div class="panel-header">
+                                <h2 id="latest-products-title">Latest products</h2>
+                                <button class="button ghost" type="button" data-go="products">View all</button>
+                            </div>
+                            <div class="latest-list" id="latest-products" aria-live="polite">
+                                <p class="latest-empty">Loading products…</p>
+                            </div>
+                        </section>
+                    </div>
                 </section>
 
                 <section class="page" id="page-create" aria-labelledby="create-title">
@@ -1466,7 +1714,7 @@
                         </div>
                     </div>
 
-                    <form id="bill-form">
+                    <form id="bill-form" novalidate>
                         <div class="form-layout">
                             <div class="form-main">
                                 <section class="form-card" aria-labelledby="bill-details-title">
@@ -1479,11 +1727,11 @@
                                     </div>
                                     <div class="field-grid">
                                         <div class="field">
-                                            <label for="bill-number">Bill number</label>
+                                            <label for="bill-number">Bill number <span class="required-mark" aria-hidden="true">*</span></label>
                                             <input id="bill-number" name="billNo" maxlength="50" required>
                                         </div>
                                         <div class="field">
-                                            <label for="bill-date">Bill date</label>
+                                            <label for="bill-date">Bill date <span class="required-mark" aria-hidden="true">*</span></label>
                                             <input id="bill-date" name="billDate" type="date" required>
                                         </div>
                                         <div class="field">
@@ -1498,27 +1746,18 @@
                                         <span class="section-number">02</span>
                                         <div>
                                             <h2 id="customer-title">Customer</h2>
-                                            <p>Choose an existing customer or add someone new.</p>
+                                            <p>Choose a customer from the saved directory.</p>
                                         </div>
                                     </div>
                                     <div class="field-grid">
                                         <div class="field full">
-                                            <label for="customer-select">Existing customer</label>
-                                            <select id="customer-select">
-                                                <option value="">Add a new customer</option>
+                                            <label for="customer-select">Customer <span class="required-mark" aria-hidden="true">*</span></label>
+                                            <select id="customer-select" name="customerId" required>
+                                                <option value="">Select a customer</option>
                                             </select>
                                         </div>
-                                        <div class="field">
-                                            <label for="customer-name">Customer name</label>
-                                            <input id="customer-name" name="customerName" maxlength="100" autocomplete="name" required>
-                                        </div>
-                                        <div class="field">
-                                            <label for="customer-mobile">Mobile number</label>
-                                            <input id="customer-mobile" name="customerMobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number">
-                                        </div>
-                                        <div class="field full">
-                                            <label for="customer-address">Customer address</label>
-                                            <textarea id="customer-address" name="customerAddress" maxlength="300" autocomplete="street-address" placeholder="Street, area, city"></textarea>
+                                        <div class="field full" id="selected-customer-details" hidden>
+                                            <p class="field-hint" id="selected-customer-summary"></p>
                                         </div>
                                     </div>
                                 </section>
@@ -1527,23 +1766,18 @@
                                     <div class="section-heading">
                                         <span class="section-number">03</span>
                                         <div>
-                                            <h2 id="items-title">Products / items</h2>
+                                            <h2 id="items-title">Add Items</h2>
                                             <p>Add each item and its amount. Your total updates automatically.</p>
                                         </div>
                                     </div>
-                                    <div class="items-head" aria-hidden="true">
-                                        <span>Product code</span>
-                                        <span>Product name</span>
-                                        <span>IMEI / serial</span>
-                                        <span>Amount (₹)</span>
-                                        <span></span>
+                                    <div class="items-head">
+                                        <span class="items-head-title">Item 1</span>
+                                        <button class="table-add-item" id="add-item" type="button" title="Add item" aria-label="Add item">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                            Add item
+                                        </button>
                                     </div>
                                     <div id="item-rows"></div>
-                                    <datalist id="product-options"></datalist>
-                                    <button class="button secondary add-item" id="add-item" type="button">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                                        Add product
-                                    </button>
                                 </section>
                             </div>
 
@@ -1569,7 +1803,7 @@
                                 <hr class="summary-divider">
                                 <div class="summary-actions">
                                     <button class="button secondary" id="preview-button" type="button">Preview bill</button>
-                                    <button class="button primary" id="save-button" type="submit">Save bill &amp; customer</button>
+                                    <button class="button primary" id="save-button" type="submit">Save bill</button>
                                     <button class="button danger" id="clear-button" type="button">Clear form</button>
                                 </div>
                                 <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
@@ -1592,6 +1826,7 @@
                             </label>
                         </div>
                     </div>
+                    <p class="operation-feedback" id="bill-feedback" role="status" aria-live="polite"></p>
                     <section class="panel" aria-label="Bills list">
                         <div class="table-wrap">
                             <table>
@@ -1604,10 +1839,11 @@
                                         <th>Paid</th>
                                         <th>Due</th>
                                         <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="all-bills">
-                                    <tr><td class="empty-state loading" colspan="7">Loading bills…</td></tr>
+                                    <tr><td class="empty-state loading" colspan="8">Loading bills…</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1631,6 +1867,7 @@
                             </button>
                         </div>
                     </div>
+                    <p class="operation-feedback" id="customer-feedback" role="status" aria-live="polite"></p>
                     <section class="panel" aria-label="Customer list">
                         <div class="panel-header">
                             <h2>Customer directory</h2>
@@ -1644,10 +1881,11 @@
                                         <th>Name</th>
                                         <th>Mobile</th>
                                         <th>Address</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="customer-list">
-                                    <tr><td class="empty-state loading" colspan="4">Loading customers…</td></tr>
+                                    <tr><td class="empty-state loading" colspan="5">Loading customers…</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1671,6 +1909,7 @@
                             </button>
                         </div>
                     </div>
+                    <p class="operation-feedback" id="product-feedback" role="status" aria-live="polite"></p>
                     <section class="panel" aria-label="Product list">
                         <div class="panel-header">
                             <h2>Product catalog</h2>
@@ -1682,10 +1921,11 @@
                                     <tr>
                                         <th>Product code</th>
                                         <th>Product name</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="product-list">
-                                    <tr><td class="empty-state loading" colspan="2">Loading products…</td></tr>
+                                    <tr><td class="empty-state loading" colspan="3">Loading products…</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -1726,15 +1966,53 @@
         <div class="preview-content" id="preview-content"></div>
     </dialog>
 
+    <dialog id="bill-detail-dialog" aria-labelledby="bill-detail-title">
+        <div class="dialog-head">
+            <h2 id="bill-detail-title">Bill details</h2>
+            <button class="button ghost" id="close-bill-details" type="button" aria-label="Close bill details">Close</button>
+        </div>
+        <div class="preview-content" id="bill-detail-content" aria-live="polite"></div>
+    </dialog>
+
+    <dialog id="customer-detail-dialog" aria-labelledby="customer-detail-title">
+        <div class="dialog-head">
+            <h2 id="customer-detail-title">Customer details</h2>
+            <button class="button ghost" type="button" data-close-dialog="customer-detail-dialog" aria-label="Close customer details">Close</button>
+        </div>
+        <div class="preview-content" id="customer-detail-content" aria-live="polite"></div>
+    </dialog>
+
+    <dialog id="product-detail-dialog" aria-labelledby="product-detail-title">
+        <div class="dialog-head">
+            <h2 id="product-detail-title">Product details</h2>
+            <button class="button ghost" type="button" data-close-dialog="product-detail-dialog" aria-label="Close product details">Close</button>
+        </div>
+        <div class="preview-content" id="product-detail-content" aria-live="polite"></div>
+    </dialog>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+        <div class="dialog-head">
+            <h2 id="confirm-title">Confirm deletion</h2>
+            <button class="button ghost" id="cancel-confirm-close" type="button" aria-label="Close confirmation">Close</button>
+        </div>
+        <div class="dialog-body">
+            <p id="confirm-message"></p>
+        </div>
+        <div class="dialog-actions">
+            <button class="button secondary" id="cancel-confirm" type="button">Cancel</button>
+            <button class="button danger" id="accept-confirm" type="button">Delete permanently</button>
+        </div>
+    </dialog>
+
     <dialog id="customer-dialog" aria-labelledby="customer-dialog-title">
-        <form id="customer-form">
+        <form id="customer-form" novalidate>
             <div class="dialog-head">
                 <h2 id="customer-dialog-title">New customer</h2>
                 <button class="button ghost" type="button" data-close-dialog="customer-dialog" aria-label="Close customer form">Close</button>
             </div>
             <div class="dialog-body">
                 <div class="field">
-                    <label for="new-customer-name">Customer name</label>
+                    <label for="new-customer-name">Customer name <span class="required-mark" aria-hidden="true">*</span></label>
                     <input id="new-customer-name" name="name" maxlength="100" autocomplete="name" required>
                 </div>
                 <div class="field">
@@ -1759,14 +2037,14 @@
     </dialog>
 
     <dialog id="product-dialog" aria-labelledby="product-dialog-title">
-        <form id="product-form">
+        <form id="product-form" novalidate>
             <div class="dialog-head">
                 <h2 id="product-dialog-title">New product</h2>
                 <button class="button ghost" type="button" data-close-dialog="product-dialog" aria-label="Close product form">Close</button>
             </div>
             <div class="dialog-body">
                 <div class="field">
-                    <label for="new-product-name">Product name</label>
+                    <label for="new-product-name">Product name <span class="required-mark" aria-hidden="true">*</span></label>
                     <input id="new-product-name" name="name" maxlength="100" required>
                 </div>
                 <div class="field">
@@ -1797,6 +2075,8 @@
         let products = [];
         let customerSearchTimer;
         let productSearchTimer;
+        let editingBillId = null;
+        let confirmResolver = null;
         const themeToggle = document.querySelector("#theme-toggle");
 
         function setTheme(theme, persist = false) {
@@ -1837,40 +2117,142 @@
             message.className = `form-message${kind ? ` ${kind}` : ""}`;
         }
 
+        function fieldIsValid(field) {
+            return field.validity.valid && !(field.required && !String(field.value).trim());
+        }
+
+        function validateFormFields(target, focusInvalid = true, markAttempt = true) {
+            if (markAttempt) target.dataset.validationAttempted = "true";
+            let firstInvalid = null;
+            const rows = new Set();
+            for (const field of target.querySelectorAll("input, select, textarea")) {
+                if (!field.willValidate) continue;
+                const invalid = !fieldIsValid(field);
+                if (invalid && !firstInvalid) firstInvalid = field;
+                if (invalid) field.setAttribute("aria-invalid", "true");
+                else field.removeAttribute("aria-invalid");
+
+                const group = field.closest(".field, .summary-paid");
+                if (group) {
+                    let error = group.querySelector(".field-error");
+                    if (!error) {
+                        error = document.createElement("span");
+                        error.className = "field-error";
+                        error.id = `${field.id || "field"}-error`;
+                        error.setAttribute("role", "alert");
+                        group.append(error);
+                    }
+                    error.textContent = field.validationMessage || "This field is required.";
+                    error.hidden = !invalid;
+                    if (error.hidden) field.removeAttribute("aria-describedby");
+                    else field.setAttribute("aria-describedby", error.id);
+                } else {
+                    const row = field.closest(".item-row");
+                    if (row) rows.add(row);
+                }
+            }
+
+            for (const row of rows) {
+                const invalid = [...row.querySelectorAll("input, select, textarea")]
+                    .some((field) => field.willValidate && !fieldIsValid(field));
+                let error = row.querySelector(".item-validation");
+                if (!error) {
+                    error = document.createElement("p");
+                    error.className = "item-validation";
+                    error.setAttribute("role", "alert");
+                    row.append(error);
+                }
+                error.textContent = "Enter a product name and an amount greater than zero.";
+                error.hidden = !invalid;
+            }
+
+            if (focusInvalid && firstInvalid) firstInvalid.focus();
+            return !firstInvalid;
+        }
+
+        function enableLiveValidation(target) {
+            const refresh = () => {
+                if (target.dataset.validationAttempted !== "true") return;
+                const valid = validateFormFields(target, false, false);
+                if (valid) {
+                    const status = target.querySelector(".dialog-message");
+                    if (status) status.textContent = "";
+                    if (target === form) setMessage("");
+                }
+            };
+            target.addEventListener("input", refresh);
+            target.addEventListener("change", refresh);
+            target.addEventListener("reset", () => {
+                delete target.dataset.validationAttempted;
+                queueMicrotask(() => {
+                    for (const field of target.querySelectorAll("[aria-invalid]")) {
+                        field.removeAttribute("aria-invalid");
+                        field.removeAttribute("aria-describedby");
+                    }
+                    target.querySelectorAll(".field-error, .item-validation").forEach((error) => {
+                        error.hidden = true;
+                    });
+                });
+            });
+        }
+
+        function setOperationFeedback(selector, text, kind = "") {
+            const target = document.querySelector(selector);
+            target.textContent = text;
+            target.className = `operation-feedback${kind ? ` ${kind}` : ""}`;
+        }
+
+        enableLiveValidation(form);
+        enableLiveValidation(document.querySelector("#customer-form"));
+        enableLiveValidation(document.querySelector("#product-form"));
+
         async function saveDirectoryEntry(event, options) {
             event.preventDefault();
-            const form = event.currentTarget;
+            const target = event.currentTarget;
             const button = document.querySelector(options.button);
             const status = document.querySelector(options.status);
-            if (!form.reportValidity()) return;
+            const recordId = target.dataset.recordId;
+            const buttonText = recordId ? options.updateText : options.buttonText;
+            if (!validateFormFields(target)) {
+                status.textContent = "Please correct the highlighted fields.";
+                return;
+            }
+
             status.textContent = "";
             button.disabled = true;
-            button.textContent = "Saving…";
+            button.textContent = options.savingText;
 
             try {
-                await api(options.endpoint, {
-                    method: "POST",
-                    body: JSON.stringify(Object.fromEntries(new FormData(form))),
+                await api(recordId ? `${options.endpoint}/${encodeURIComponent(recordId)}` : options.endpoint, {
+                    method: recordId ? "PUT" : "POST",
+                    body: JSON.stringify(Object.fromEntries(new FormData(target))),
                 });
             } catch (error) {
                 status.textContent = error.message;
                 button.disabled = false;
-                button.textContent = options.buttonText;
+                button.textContent = buttonText;
                 return;
             }
 
-            form.reset();
+            target.reset();
+            delete target.dataset.recordId;
             document.querySelector(options.dialog).close();
             document.querySelector(options.search).value = "";
             await options.reload();
+            let refreshError = "";
             try {
                 await loadLookups();
+                await loadDashboardLists();
             } catch (error) {
-                document.querySelector(options.count).textContent =
-                    `Saved, but billing lookups could not refresh: ${error.message}`;
+                refreshError = error.message;
             }
             button.disabled = false;
-            button.textContent = options.buttonText;
+            button.textContent = buttonText;
+            setOperationFeedback(
+                options.feedback,
+                refreshError ? `${options.entity} saved, but billing data could not refresh: ${refreshError}` : `${options.entity} saved successfully.`,
+                refreshError ? "error" : "success",
+            );
         }
 
         function setNavigation(page) {
@@ -1905,12 +2287,32 @@
                 input.step = "0.01";
                 input.inputMode = "decimal";
                 input.required = true;
+                input.setAttribute("aria-required", "true");
             }
             if (field === "productName") {
-                input.required = true;
-                input.setAttribute("list", "product-options");
+                const select = document.createElement("select");
+                select.dataset.field = "productName";
+                select.required = true;
+                select.setAttribute("aria-required", "true");
+                select.setAttribute("aria-label", "Product");
+                select.add(new Option("Select a product", ""));
+                for (const product of products) {
+                    select.add(new Option(product.code ? `${product.name} (${product.code})` : product.name, String(product.id)));
+                }
+                select.addEventListener("change", (event) => {
+                    const row = event.currentTarget.closest(".item-row");
+                    const product = products.find((entry) => String(entry.id) === event.currentTarget.value);
+                    const code = row.querySelector('[data-field="productCode"]');
+                    code.value = product?.code || "";
+                    updateTotals();
+                });
+                return select;
             }
-            if (field === "productCode") input.maxLength = 20;
+            if (field === "productCode") {
+                input.maxLength = 20;
+                input.readOnly = true;
+                input.setAttribute("aria-label", "Selected product code");
+            }
             if (field === "imei") input.maxLength = 32;
             input.addEventListener("input", updateTotals);
             return input;
@@ -1919,18 +2321,36 @@
         function addItem(values = {}) {
             const row = document.createElement("div");
             row.className = "item-row";
-            row.append(
-                itemInput("productCode", "Product code"),
-                itemInput("productName", "Product name"),
-                itemInput("imei", "IMEI / serial"),
-                itemInput("amount", "0.00", "number"),
-            );
+            const addField = (field, label, control) => {
+                const wrapper = document.createElement("div");
+                wrapper.className = "item-field";
+                const labelElement = document.createElement("label");
+                const index = itemRows.children.length + 1;
+                const controlId = `item-${Date.now()}-${index}-${field}`;
+                labelElement.htmlFor = controlId;
+                labelElement.textContent = label;
+                control.id = controlId;
+                wrapper.append(labelElement, control);
+                row.append(wrapper);
+            };
+
+            addField("productName", "Product *", itemInput("productName", "Select a product"));
+            addField("productCode", "Product code", itemInput("productCode", "Auto-filled"));
+            addField("imei", "IMEI / serial", itemInput("imei", "Optional"));
+            addField("amount", "Amount (₹) *", itemInput("amount", "0.00", "number"));
+
             const code = row.querySelector('[data-field="productCode"]');
             const name = row.querySelector('[data-field="productName"]');
             const imei = row.querySelector('[data-field="imei"]');
             const amount = row.querySelector('[data-field="amount"]');
             code.value = values.productCode || "";
-            name.value = values.productName || "";
+            if (name.tagName === "SELECT") {
+                const matched = products.find((product) =>
+                    product.name === values.productName
+                    || (values.productCode && product.code === values.productCode),
+                );
+                name.value = matched ? String(matched.id) : "";
+            }
             imei.value = values.imei || "";
             amount.value = values.amount || "";
             const remove = document.createElement("button");
@@ -1939,25 +2359,40 @@
             remove.setAttribute("aria-label", "Remove product");
             remove.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>';
             remove.addEventListener("click", () => {
-                if (itemRows.children.length === 1) {
-                    row.querySelectorAll("input").forEach((input) => { input.value = ""; });
-                } else {
-                    row.remove();
-                }
+                row.remove();
+                if (itemRows.children.length === 0) addItem();
                 updateTotals();
+                updateItemLabels();
+                if (form.dataset.validationAttempted === "true") validateFormFields(form, false, false);
             });
             row.append(remove);
             itemRows.append(row);
             updateTotals();
+            updateItemLabels();
+            if (form.dataset.validationAttempted === "true") validateFormFields(form, false, false);
+        }
+
+        function updateItemLabels() {
+            const title = document.querySelector(".items-head-title");
+            if (title) {
+                const count = itemRows.children.length;
+                title.textContent = count === 1 ? "1 item" : `${count} items`;
+            }
         }
 
         function readItems() {
-            return [...itemRows.querySelectorAll(".item-row")].map((row) => ({
-                productCode: row.querySelector('[data-field="productCode"]').value.trim(),
-                productName: row.querySelector('[data-field="productName"]').value.trim(),
-                imei: row.querySelector('[data-field="imei"]').value.trim(),
-                amount: Number(row.querySelector('[data-field="amount"]').value),
-            })).filter((item) => item.productName || item.amount);
+            return [...itemRows.querySelectorAll(".item-row")].map((row) => {
+                const nameControl = row.querySelector('[data-field="productName"]');
+                const product = nameControl.tagName === "SELECT"
+                    ? products.find((entry) => String(entry.id) === nameControl.value)
+                    : null;
+                return {
+                    productCode: row.querySelector('[data-field="productCode"]').value.trim(),
+                    productName: product?.name || (nameControl.tagName === "SELECT" ? "" : nameControl.value.trim()),
+                    imei: row.querySelector('[data-field="imei"]').value.trim(),
+                    amount: Number(row.querySelector('[data-field="amount"]').value),
+                };
+            }).filter((item) => item.productName || item.amount);
         }
 
         function updateTotals() {
@@ -1980,6 +2415,90 @@
             return cell;
         }
 
+        function showBillDetails(bill) {
+            const content = document.querySelector("#bill-detail-content");
+            content.replaceChildren();
+
+            const metadata = document.createElement("div");
+            metadata.className = "preview-meta";
+            const fields = [
+                ["Bill number", bill.billNo],
+                ["Bill date", dateLabel(bill.billDate)],
+                ["Payment Due date", dateLabel(bill.dueDate)],
+                ["Customer", bill.customerName],
+                ["Mobile", bill.customerMobile || "—"],
+                ["Address", bill.customerAddress || "—"],
+            ];
+            for (const [label, value] of fields) {
+                const block = document.createElement("div");
+                block.textContent = label;
+                const strong = document.createElement("strong");
+                strong.textContent = value;
+                block.append(strong);
+                metadata.append(block);
+            }
+
+            const table = document.createElement("table");
+            table.className = "preview-items";
+            const head = document.createElement("thead");
+            const headRow = document.createElement("tr");
+            for (const label of ["Product", "Code", "IMEI / serial", "Amount"]) {
+                const cell = document.createElement("th");
+                cell.textContent = label;
+                headRow.append(cell);
+            }
+            head.append(headRow);
+            const body = document.createElement("tbody");
+            for (const item of bill.items) {
+                const row = document.createElement("tr");
+                appendCell(row, item.productName);
+                appendCell(row, item.productCode || "—");
+                appendCell(row, item.imei || "—");
+                appendCell(row, money(item.amount));
+                body.append(row);
+            }
+            table.append(head, body);
+            const tableWrap = document.createElement("div");
+            tableWrap.className = "table-wrap";
+            tableWrap.append(table);
+
+            const totals = document.createElement("div");
+            totals.className = "preview-total";
+            for (const [label, value] of [
+                ["Total", money(bill.total)],
+                ["Paid", money(bill.paid)],
+            ]) {
+                const line = document.createElement("span");
+                line.textContent = `${label} ${value}`;
+                totals.append(line);
+            }
+            const due = document.createElement("strong");
+            due.textContent = `Due ${money(bill.due)}`;
+            totals.append(due);
+            content.append(metadata, tableWrap, totals);
+        }
+
+        async function openBillDetails(billId) {
+            const dialog = document.querySelector("#bill-detail-dialog");
+            const content = document.querySelector("#bill-detail-content");
+            content.replaceChildren();
+            const loading = document.createElement("p");
+            loading.className = "latest-empty";
+            loading.textContent = "Loading bill details…";
+            content.append(loading);
+            dialog.showModal();
+            try {
+                const bill = await api(`/api/bills/${encodeURIComponent(billId)}`);
+                showBillDetails(bill);
+            } catch (error) {
+                content.replaceChildren();
+                const status = document.createElement("p");
+                status.className = "dialog-message";
+                status.textContent = `Could not load bill details: ${error.message}`;
+                content.append(status);
+            }
+        }
+
         function dateLabel(value) {
             if (!value) return "—";
             const date = new Date(`${value}T00:00:00`);
@@ -1994,12 +2513,157 @@
             return Number(bill.due) <= 0 ? ["Paid", "paid"] : ["Payment due", "due"];
         }
 
+        function appendActions(row, actions) {
+            const cell = document.createElement("td");
+            const group = document.createElement("div");
+            group.className = "action-buttons";
+            const icons = {
+                view: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>',
+                edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 5 5 5M4 20l4.2-.8L19 8.4 15.6 5 4.8 15.8 4 20Z"/></svg>',
+                delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>',
+            };
+            for (const action of actions) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = `action-button${action.name === "delete" ? " delete" : ""}`;
+                button.setAttribute("aria-label", action.label);
+                button.title = action.label;
+                button.innerHTML = icons[action.name];
+                button.addEventListener("click", action.onClick);
+                group.append(button);
+            }
+            cell.append(group);
+            row.append(cell);
+        }
+
+        function showRecordDetails(contentId, fields) {
+            const content = document.querySelector(contentId);
+            content.replaceChildren();
+            const metadata = document.createElement("div");
+            metadata.className = "preview-meta";
+            for (const [label, value] of fields) {
+                const block = document.createElement("div");
+                block.textContent = label;
+                const strong = document.createElement("strong");
+                strong.textContent = value || "—";
+                block.append(strong);
+                metadata.append(block);
+            }
+            content.append(metadata);
+        }
+
+        async function openDirectoryDetails(type, id) {
+            const settings = type === "customer"
+                ? { endpoint: "customers", dialog: "#customer-detail-dialog", content: "#customer-detail-content" }
+                : { endpoint: "products", dialog: "#product-detail-dialog", content: "#product-detail-content" };
+            const content = document.querySelector(settings.content);
+            content.textContent = "Loading details…";
+            document.querySelector(settings.dialog).showModal();
+            try {
+                const entry = await api(`/api/${settings.endpoint}/${encodeURIComponent(id)}`);
+                const fields = type === "customer"
+                    ? [["Customer code", entry.code], ["Name", entry.name], ["Mobile", entry.mobile], ["Address", entry.address]]
+                    : [["Product code", entry.code], ["Product name", entry.name]];
+                showRecordDetails(settings.content, fields);
+            } catch (error) {
+                content.textContent = `Could not load details: ${error.message}`;
+            }
+        }
+
+        function openDirectoryForm(type) {
+            const isCustomer = type === "customer";
+            const formId = isCustomer ? "#customer-form" : "#product-form";
+            const formElement = document.querySelector(formId);
+            formElement.reset();
+            delete formElement.dataset.recordId;
+            document.querySelector(isCustomer ? "#customer-dialog-title" : "#product-dialog-title").textContent =
+                `New ${type}`;
+            document.querySelector(isCustomer ? "#save-customer-button" : "#save-product-button").textContent =
+                `Save ${type}`;
+            document.querySelector(isCustomer ? "#customer-dialog-message" : "#product-dialog-message").textContent = "";
+            document.querySelector(isCustomer ? "#customer-dialog" : "#product-dialog").showModal();
+            document.querySelector(isCustomer ? "#new-customer-name" : "#new-product-name").focus();
+        }
+
+        async function editDirectoryEntry(type, id) {
+            const isCustomer = type === "customer";
+            const settings = isCustomer
+                ? {
+                    endpoint: "customers",
+                    form: "#customer-form",
+                    dialog: "#customer-dialog",
+                    title: "#customer-dialog-title",
+                    save: "#save-customer-button",
+                    status: "#customer-dialog-message",
+                    feedback: "#customer-feedback",
+                }
+                : {
+                    endpoint: "products",
+                    form: "#product-form",
+                    dialog: "#product-dialog",
+                    title: "#product-dialog-title",
+                    save: "#save-product-button",
+                    status: "#product-dialog-message",
+                    feedback: "#product-feedback",
+                };
+            try {
+                const entry = await api(`/api/${settings.endpoint}/${encodeURIComponent(id)}`);
+                const formElement = document.querySelector(settings.form);
+                formElement.reset();
+                formElement.dataset.recordId = String(id);
+                for (const key of isCustomer ? ["name", "code", "mobile", "address"] : ["name", "code"]) {
+                    formElement.elements.namedItem(key).value = entry[key] || "";
+                }
+                document.querySelector(settings.title).textContent = `Edit ${type}`;
+                document.querySelector(settings.save).textContent = `Update ${type}`;
+                document.querySelector(settings.status).textContent = "";
+                document.querySelector(settings.dialog).showModal();
+                document.querySelector(isCustomer ? "#new-customer-name" : "#new-product-name").focus();
+            } catch (error) {
+                setOperationFeedback(settings.feedback, `Could not load ${type}: ${error.message}`, "error");
+            }
+        }
+
+        async function confirmDeletion(text) {
+            const dialog = document.querySelector("#confirm-dialog");
+            document.querySelector("#confirm-message").textContent = text;
+            return new Promise((resolve) => {
+                confirmResolver = resolve;
+                dialog.showModal();
+            });
+        }
+
+        function resolveDeletion(confirmed) {
+            const resolve = confirmResolver;
+            confirmResolver = null;
+            document.querySelector("#confirm-dialog").close();
+            if (resolve) resolve(confirmed);
+        }
+
+        async function deleteDirectoryEntry(type, entry) {
+            if (!await confirmDeletion(`Delete ${type} “${entry.name}”? This cannot be undone.`)) return;
+            const isCustomer = type === "customer";
+            const feedback = isCustomer ? "#customer-feedback" : "#product-feedback";
+            const search = isCustomer ? "#customer-search" : "#product-search";
+            try {
+                await api(`/api/${isCustomer ? "customers" : "products"}/${encodeURIComponent(entry.id)}`, {
+                    method: "DELETE",
+                });
+                await (isCustomer ? loadCustomerDirectory(document.querySelector(search).value.trim()) : loadProductDirectory(document.querySelector(search).value.trim()));
+                await loadLookups();
+                await loadDashboardLists();
+                setOperationFeedback(feedback, `${type[0].toUpperCase()}${type.slice(1)} deleted.`, "success");
+            } catch (error) {
+                setOperationFeedback(feedback, error.message, "error");
+            }
+        }
+
         function renderBillRows(target, bills, compact = false) {
             target.replaceChildren();
             if (!bills.length) {
                 const row = document.createElement("tr");
                 const cell = document.createElement("td");
-                cell.colSpan = compact ? 5 : 7;
+                cell.colSpan = compact ? 5 : 8;
                 cell.className = "empty-state";
                 cell.innerHTML = "<strong>No bills yet</strong>Once you save a bill, it will show up here.";
                 row.append(cell);
@@ -2008,7 +2672,15 @@
             }
             for (const bill of bills) {
                 const row = document.createElement("tr");
-                appendCell(row, bill.billNo, "bill-number");
+                const billCell = document.createElement("td");
+                const billLink = document.createElement("button");
+                billLink.className = "bill-link";
+                billLink.type = "button";
+                billLink.textContent = bill.billNo;
+                billLink.setAttribute("aria-label", `View details for bill ${bill.billNo}`);
+                billLink.addEventListener("click", () => openBillDetails(bill.id));
+                billCell.append(billLink);
+                row.append(billCell);
                 appendCell(row, bill.customerName);
                 appendCell(row, dateLabel(bill.billDate));
                 appendCell(row, money(bill.total));
@@ -2030,6 +2702,11 @@
                     badge.textContent = label;
                     cell.append(badge);
                     row.append(cell);
+                    appendActions(row, [
+                        { name: "view", label: `View bill ${bill.billNo}`, onClick: () => openBillDetails(bill.id) },
+                        { name: "edit", label: `Edit bill ${bill.billNo}`, onClick: () => editBill(bill.id) },
+                        { name: "delete", label: `Delete bill ${bill.billNo}`, onClick: () => deleteBill(bill) },
+                    ]);
                 }
                 target.append(row);
             }
@@ -2037,6 +2714,7 @@
 
         async function loadDashboard() {
             const target = document.querySelector("#recent-bills");
+            loadDashboardLists();
             try {
                 const data = await api("/api/dashboard");
                 document.querySelector("#stat-sales").textContent = money(data.summary.totalSales);
@@ -2055,6 +2733,57 @@
             }
         }
 
+        function renderLatestEntries(target, entries, type, error) {
+            target.replaceChildren();
+            if (error) {
+                const status = document.createElement("p");
+                status.className = "latest-empty";
+                status.textContent = `Could not load ${type}: ${error}`;
+                target.append(status);
+                return;
+            }
+            if (!entries.length) {
+                const status = document.createElement("p");
+                status.className = "latest-empty";
+                status.textContent = `No ${type} saved yet.`;
+                target.append(status);
+                return;
+            }
+            for (const entry of entries.slice(0, 5)) {
+                const row = document.createElement("div");
+                row.className = "latest-entry";
+                const details = document.createElement("div");
+                const name = document.createElement("strong");
+                name.textContent = entry.name;
+                const subline = document.createElement("span");
+                subline.textContent = type === "customers"
+                    ? [entry.code, entry.mobile].filter(Boolean).join(" · ") || "Customer"
+                    : entry.code || "Product";
+                details.append(name, subline);
+                row.append(details);
+                target.append(row);
+            }
+        }
+
+        async function loadDashboardLists() {
+            const [customerResult, productResult] = await Promise.allSettled([
+                api("/api/customers"),
+                api("/api/products"),
+            ]);
+            renderLatestEntries(
+                document.querySelector("#latest-customers"),
+                customerResult.status === "fulfilled" ? customerResult.value : [],
+                "customers",
+                customerResult.status === "rejected" ? customerResult.reason.message : "",
+            );
+            renderLatestEntries(
+                document.querySelector("#latest-products"),
+                productResult.status === "fulfilled" ? productResult.value : [],
+                "products",
+                productResult.status === "rejected" ? productResult.reason.message : "",
+            );
+        }
+
         async function loadBills(query = "") {
             const target = document.querySelector("#all-bills");
             try {
@@ -2065,7 +2794,7 @@
                 target.replaceChildren();
                 const row = document.createElement("tr");
                 const cell = document.createElement("td");
-                cell.colSpan = 7;
+                cell.colSpan = 8;
                 cell.className = "empty-state";
                 cell.textContent = `Could not load bills: ${error.message}`;
                 row.append(cell);
@@ -2092,7 +2821,7 @@
                 const results = await api(`/api/customers${suffix}`);
                 count.textContent = `${results.length} shown${results.length === 100 ? " · max 100" : ""}`;
                 if (!results.length) {
-                    showDirectoryMessage(target, 4, query ? "No customers match your search." : "No customers have been saved yet.");
+                    showDirectoryMessage(target, 5, query ? "No customers match your search." : "No customers have been saved yet.");
                     return;
                 }
                 target.replaceChildren();
@@ -2102,11 +2831,16 @@
                     appendCell(row, customer.name);
                     appendCell(row, customer.mobile || "—");
                     appendCell(row, customer.address || "—");
+                    appendActions(row, [
+                        { name: "view", label: `View ${customer.name}`, onClick: () => openDirectoryDetails("customer", customer.id) },
+                        { name: "edit", label: `Edit ${customer.name}`, onClick: () => editDirectoryEntry("customer", customer.id) },
+                        { name: "delete", label: `Delete ${customer.name}`, onClick: () => deleteDirectoryEntry("customer", customer) },
+                    ]);
                     target.append(row);
                 }
             } catch (error) {
                 count.textContent = "";
-                showDirectoryMessage(target, 4, `Could not load customers: ${error.message}`);
+                showDirectoryMessage(target, 5, `Could not load customers: ${error.message}`);
             }
         }
 
@@ -2118,7 +2852,7 @@
                 const results = await api(`/api/products${suffix}`);
                 count.textContent = `${results.length} shown${results.length === 100 ? " · max 100" : ""}`;
                 if (!results.length) {
-                    showDirectoryMessage(target, 2, query ? "No products match your search." : "No products have been saved yet.");
+                    showDirectoryMessage(target, 3, query ? "No products match your search." : "No products have been saved yet.");
                     return;
                 }
                 target.replaceChildren();
@@ -2126,11 +2860,16 @@
                     const row = document.createElement("tr");
                     appendCell(row, product.code || "—");
                     appendCell(row, product.name);
+                    appendActions(row, [
+                        { name: "view", label: `View ${product.name}`, onClick: () => openDirectoryDetails("product", product.id) },
+                        { name: "edit", label: `Edit ${product.name}`, onClick: () => editDirectoryEntry("product", product.id) },
+                        { name: "delete", label: `Delete ${product.name}`, onClick: () => deleteDirectoryEntry("product", product) },
+                    ]);
                     target.append(row);
                 }
             } catch (error) {
                 count.textContent = "";
-                showDirectoryMessage(target, 2, `Could not load products: ${error.message}`);
+                showDirectoryMessage(target, 3, `Could not load products: ${error.message}`);
             }
         }
 
@@ -2141,23 +2880,39 @@
             ]);
             customers = results[0];
             products = results[1];
-            customerSelect.replaceChildren(new Option("Add a new customer", ""));
+            customerSelect.replaceChildren(new Option("Select a customer", ""));
             for (const customer of customers) {
                 const detail = customer.mobile ? ` · ${customer.mobile}` : "";
                 customerSelect.add(new Option(`${customer.name}${detail}`, String(customer.id)));
             }
-            const options = document.querySelector("#product-options");
-            options.replaceChildren();
-            for (const product of products) {
-                options.append(new Option(product.name));
+            refreshItemProductOptions();
+        }
+
+        function refreshItemProductOptions() {
+            for (const select of itemRows.querySelectorAll('select[data-field="productName"]')) {
+                const selected = select.value;
+                select.replaceChildren(new Option("Select a product", ""));
+                for (const product of products) {
+                    select.add(new Option(product.code ? `${product.name} (${product.code})` : product.name, String(product.id)));
+                }
+                select.value = selected;
             }
         }
 
         function selectCustomer() {
             const customer = customers.find((entry) => String(entry.id) === customerSelect.value);
-            document.querySelector("#customer-name").value = customer?.name || "";
-            document.querySelector("#customer-mobile").value = customer?.mobile || "";
-            document.querySelector("#customer-address").value = customer?.address || "";
+            const details = document.querySelector("#selected-customer-details");
+            const summary = document.querySelector("#selected-customer-summary");
+            if (!customer) {
+                details.hidden = true;
+                summary.textContent = "";
+                return;
+            }
+            summary.textContent = [
+                customer.mobile,
+                customer.address,
+            ].filter(Boolean).join(" · ");
+            details.hidden = false;
         }
 
         function localDateISO(date = new Date()) {
@@ -2169,13 +2924,55 @@
 
         function resetForm() {
             form.reset();
+            editingBillId = null;
+            document.querySelector("#create-title").textContent = "Create a new bill";
+            document.querySelector("#save-button").textContent = "Save bill";
             customerSelect.value = "";
+            selectCustomer();
             itemRows.replaceChildren();
             addItem();
             const today = localDateISO();
             document.querySelector("#bill-date").value = today;
             document.querySelector("#bill-number").value = makeBillNumber();
             setMessage("");
+        }
+
+        async function editBill(billId) {
+            try {
+                const bill = await api(`/api/bills/${encodeURIComponent(billId)}`);
+                if (!customers.length) await loadLookups();
+                form.reset();
+                editingBillId = Number(bill.id);
+                document.querySelector("#bill-number").value = bill.billNo;
+                document.querySelector("#bill-date").value = bill.billDate;
+                document.querySelector("#due-date").value = bill.dueDate || "";
+                if (bill.customerId !== null && ![...customerSelect.options].some((option) => option.value === String(bill.customerId))) {
+                    customerSelect.add(new Option(bill.customerName, String(bill.customerId)));
+                }
+                customerSelect.value = bill.customerId === null ? "" : String(bill.customerId);
+                selectCustomer();
+                document.querySelector("#paid-amount").value = bill.paid;
+                itemRows.replaceChildren();
+                for (const item of bill.items) addItem(item);
+                document.querySelector("#create-title").textContent = `Edit bill ${bill.billNo}`;
+                document.querySelector("#save-button").textContent = "Update bill";
+                setMessage("");
+                setNavigation("create");
+            } catch (error) {
+                setOperationFeedback("#bill-feedback", `Could not load bill for editing: ${error.message}`, "error");
+            }
+        }
+
+        async function deleteBill(bill) {
+            if (!await confirmDeletion(`Delete bill ${bill.billNo} and its items? This cannot be undone.`)) return;
+            try {
+                await api(`/api/bills/${encodeURIComponent(bill.id)}`, { method: "DELETE" });
+                await loadBills(document.querySelector("#bill-search").value.trim());
+                await loadDashboard();
+                setOperationFeedback("#bill-feedback", `Bill ${bill.billNo} deleted.`, "success");
+            } catch (error) {
+                setOperationFeedback("#bill-feedback", error.message, "error");
+            }
         }
 
         function makeBillNumber() {
@@ -2185,7 +2982,16 @@
         }
 
         function previewBill() {
-            if (!form.reportValidity()) return;
+            updateTotals();
+            if (!validateFormFields(form)) {
+                setMessage("Please correct the highlighted fields.", "error");
+                return;
+            }
+            if (!customerSelect.value) {
+                setMessage("Select an existing customer.", "error");
+                customerSelect.focus();
+                return;
+            }
             const items = readItems();
             if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
                 setMessage("Add a product name and valid amount for each item.", "error");
@@ -2204,9 +3010,9 @@
             const fields = [
                 ["Bill number", document.querySelector("#bill-number").value],
                 ["Bill date", dateLabel(document.querySelector("#bill-date").value)],
-                ["Customer", document.querySelector("#customer-name").value],
-                ["Mobile", document.querySelector("#customer-mobile").value || "—"],
-                ["Address", document.querySelector("#customer-address").value || "—"],
+                ["Customer", customers.find((entry) => String(entry.id) === customerSelect.value)?.name || "—"],
+                ["Mobile", customers.find((entry) => String(entry.id) === customerSelect.value)?.mobile || "—"],
+                ["Address", customers.find((entry) => String(entry.id) === customerSelect.value)?.address || "—"],
             ];
             for (const [label, value] of fields) {
                 const block = document.createElement("div");
@@ -2252,7 +3058,10 @@
             button.addEventListener("click", () => setNavigation(button.dataset.page));
         });
         document.querySelectorAll("[data-go]").forEach((button) => {
-            button.addEventListener("click", () => setNavigation(button.dataset.go));
+            button.addEventListener("click", () => {
+                if (button.dataset.go === "create") resetForm();
+                setNavigation(button.dataset.go);
+            });
         });
         document.querySelector("#add-item").addEventListener("click", () => addItem());
         document.querySelector("#paid-amount").addEventListener("input", updateTotals);
@@ -2260,6 +3069,9 @@
         document.querySelector("#preview-button").addEventListener("click", previewBill);
         document.querySelector("#close-preview").addEventListener("click", () => {
             document.querySelector("#preview-dialog").close();
+        });
+        document.querySelector("#close-bill-details").addEventListener("click", () => {
+            document.querySelector("#bill-detail-dialog").close();
         });
         document.querySelector("#clear-button").addEventListener("click", resetForm);
         document.querySelector("#bill-search").addEventListener("input", (event) => {
@@ -2280,12 +3092,10 @@
             );
         });
         document.querySelector("#new-customer-button").addEventListener("click", () => {
-            document.querySelector("#customer-dialog").showModal();
-            document.querySelector("#new-customer-name").focus();
+            openDirectoryForm("customer");
         });
         document.querySelector("#new-product-button").addEventListener("click", () => {
-            document.querySelector("#product-dialog").showModal();
-            document.querySelector("#new-product-name").focus();
+            openDirectoryForm("product");
         });
         document.querySelectorAll("[data-close-dialog]").forEach((button) => {
             button.addEventListener("click", () => {
@@ -2296,24 +3106,30 @@
             saveDirectoryEntry(event, {
                 button: "#save-customer-button",
                 buttonText: "Save customer",
-                count: "#customer-count",
+                updateText: "Update customer",
+                savingText: "Saving…",
                 dialog: "#customer-dialog",
                 endpoint: "/api/customers",
                 reload: () => loadCustomerDirectory(),
                 search: "#customer-search",
                 status: "#customer-dialog-message",
+                feedback: "#customer-feedback",
+                entity: "Customer",
             });
         });
         document.querySelector("#product-form").addEventListener("submit", (event) => {
             saveDirectoryEntry(event, {
                 button: "#save-product-button",
                 buttonText: "Save product",
-                count: "#product-count",
+                updateText: "Update product",
+                savingText: "Saving…",
                 dialog: "#product-dialog",
                 endpoint: "/api/products",
                 reload: () => loadProductDirectory(),
                 search: "#product-search",
                 status: "#product-dialog-message",
+                feedback: "#product-feedback",
+                entity: "Product",
             });
         });
 
@@ -2321,7 +3137,10 @@
             event.preventDefault();
             setMessage("");
             updateTotals();
-            if (!form.reportValidity()) return;
+            if (!validateFormFields(form)) {
+                setMessage("Please correct the highlighted fields.", "error");
+                return;
+            }
             const items = readItems();
             if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
                 setMessage("Add a product name and valid amount for each item.", "error");
@@ -2333,35 +3152,59 @@
                 setMessage("Paid amount cannot be greater than the total.", "error");
                 return;
             }
+            const customer = customers.find((entry) => String(entry.id) === customerSelect.value);
+            if (!customer) {
+                setMessage("Select an existing customer.", "error");
+                customerSelect.focus();
+                return;
+            }
             const button = document.querySelector("#save-button");
             button.disabled = true;
             button.textContent = "Saving…";
+            const isEditing = editingBillId !== null;
+            const endpoint = isEditing ? `/api/bills/${encodeURIComponent(editingBillId)}` : "/api/bills";
             try {
-                const result = await api("/api/bills", {
-                    method: "POST",
+                const result = await api(endpoint, {
+                    method: isEditing ? "PUT" : "POST",
                     body: JSON.stringify({
                         billNo: document.querySelector("#bill-number").value.trim(),
                         billDate: document.querySelector("#bill-date").value,
                         dueDate: document.querySelector("#due-date").value || null,
                         customerId: customerSelect.value || null,
-                        customerName: document.querySelector("#customer-name").value.trim(),
-                        customerMobile: document.querySelector("#customer-mobile").value.trim() || null,
-                        customerAddress: document.querySelector("#customer-address").value.trim() || null,
+                        customerName: customer.name,
+                        customerMobile: customer.mobile || null,
+                        customerAddress: customer.address || null,
                         paid,
                         items,
                     }),
                 });
-                setMessage(`Bill ${result.billNo} saved successfully.`, "success");
+                const savedBillNo = result.billNo;
                 resetForm();
-                setMessage(`Bill ${result.billNo} saved successfully.`, "success");
-                await Promise.all([loadDashboard(), loadLookups()]);
+                setOperationFeedback("#bill-feedback", `Bill ${savedBillNo} ${isEditing ? "updated" : "saved"} successfully.`, "success");
+                try {
+                    await Promise.all([loadDashboard(), loadBills(document.querySelector("#bill-search").value.trim()), loadLookups()]);
+                } catch (error) {
+                    setOperationFeedback(
+                        "#bill-feedback",
+                        `Bill ${savedBillNo} was saved, but billing lookups could not refresh: ${error.message}`,
+                        "error",
+                    );
+                }
                 window.setTimeout(() => setNavigation("dashboard"), 650);
             } catch (error) {
                 setMessage(error.message, "error");
             } finally {
                 button.disabled = false;
-                button.innerHTML = "Save bill &amp; customer";
+                button.textContent = editingBillId === null ? "Save bill" : "Update bill";
             }
+        });
+
+        document.querySelector("#accept-confirm").addEventListener("click", () => resolveDeletion(true));
+        document.querySelector("#cancel-confirm").addEventListener("click", () => resolveDeletion(false));
+        document.querySelector("#cancel-confirm-close").addEventListener("click", () => resolveDeletion(false));
+        document.querySelector("#confirm-dialog").addEventListener("cancel", (event) => {
+            event.preventDefault();
+            resolveDeletion(false);
         });
 
         const today = new Date();
@@ -2372,7 +3215,6 @@
             year: "numeric",
         }).format(today);
         resetForm();
-        addItem();
         loadDashboard();
         loadLookups().catch((error) => setMessage(`Could not load customers and products: ${error.message}`, "error"));
     </script>

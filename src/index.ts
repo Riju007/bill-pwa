@@ -122,8 +122,8 @@ function parseBill(b: Record<string, unknown>): Parsed<BillInput> {
     if (customerAddress && customerAddress.length > 300) {
         return { ok: false, error: "customerAddress must be at most 300 characters" };
     }
-    if (customerId !== null && (!Number.isInteger(customerId) || customerId < 1)) {
-        return { ok: false, error: "customerId must be a positive integer" };
+    if (customerId === null || !Number.isInteger(customerId) || customerId < 1) {
+        return { ok: false, error: "customerId is required and must be a positive integer" };
     }
     if (!Number.isFinite(paid) || paid < 0) {
         return { ok: false, error: "paid must be a non-negative number" };
@@ -227,6 +227,107 @@ export default {
             });
         }
 
+        const billDetailMatch = /^\/api\/bills\/(\d+)$/.exec(url.pathname);
+        if (billDetailMatch) {
+            const billId = Number(billDetailMatch[1]);
+            if (!Number.isSafeInteger(billId) || billId < 1) return json({ error: "Invalid bill id" }, 400);
+
+            if (request.method === "GET") {
+                const [billResult, itemsResult] = await Promise.all([
+                    env.DB.prepare(
+                        `SELECT id, bill_no AS billNo, bill_date AS billDate,
+                            due_date AS dueDate, customer_id AS customerId,
+                            customer_name AS customerName, customer_mobile AS customerMobile,
+                            customer_address AS customerAddress, paid
+                        FROM bills
+                        WHERE id = ?`,
+                    ).bind(billId).all(),
+                    env.DB.prepare(
+                        `SELECT product_code AS productCode, product_name AS productName, imei, amount
+                        FROM bill_items
+                        WHERE bill_id = ?
+                        ORDER BY id`,
+                    ).bind(billId).all(),
+                ]);
+                const bill = billResult.results[0];
+                if (!bill) return json({ error: "Bill not found" }, 404);
+
+                const items = itemsResult.results;
+                const total = items.reduce((sum, item) => sum + Number(item.amount), 0);
+                return json({ ...bill, items, total, due: total - Number(bill.paid) });
+            }
+
+            if (request.method === "PUT") {
+                const body = await readJson(request);
+                if (!body.ok) return json({ error: body.error }, 400);
+                const parsed = parseBill(body.value);
+                if (!parsed.ok) return json({ error: parsed.error }, 400);
+                const bill = parsed.value;
+
+                const existing = await env.DB.prepare("SELECT id FROM bills WHERE id = ?").bind(billId).all();
+                if (existing.results.length === 0) return json({ error: "Bill not found" }, 404);
+                if (bill.customerId !== null) {
+                    const customer = await env.DB
+                        .prepare("SELECT id FROM customers WHERE id = ?")
+                        .bind(bill.customerId)
+                        .all();
+                    if (customer.results.length === 0) return json({ error: "Customer not found" }, 404);
+                }
+                for (const item of bill.items) {
+                    const product = await env.DB
+                        .prepare("SELECT id FROM products WHERE name = ? AND (? IS NULL OR code = ?) LIMIT 1")
+                        .bind(item.productName, item.productCode, item.productCode)
+                        .all();
+                    if (product.results.length === 0) {
+                        return json({ error: `Product not found: ${item.productName}` }, 404);
+                    }
+                }
+
+                const statements = [
+                    env.DB.prepare(
+                        `UPDATE bills
+                        SET bill_no = ?, bill_date = ?, due_date = ?, customer_id = ?,
+                            customer_name = ?, customer_mobile = ?, customer_address = ?, paid = ?
+                        WHERE id = ?`,
+                    ).bind(
+                        bill.billNo,
+                        bill.billDate,
+                        bill.dueDate,
+                        bill.customerId,
+                        bill.customerName,
+                        bill.customerMobile,
+                        bill.customerAddress,
+                        bill.paid,
+                        billId,
+                    ),
+                    env.DB.prepare("DELETE FROM bill_items WHERE bill_id = ?").bind(billId),
+                ];
+                for (const item of bill.items) {
+                    statements.push(
+                        env.DB.prepare(
+                            `INSERT INTO bill_items (bill_id, product_code, product_name, imei, amount)
+                            VALUES (?, ?, ?, ?, ?)`,
+                        ).bind(billId, item.productCode, item.productName, item.imei, item.amount),
+                    );
+                }
+                await env.DB.batch(statements);
+                const total = bill.items.reduce((sum, item) => sum + item.amount, 0);
+                return json({ id: billId, ...bill, total, due: total - bill.paid });
+            }
+
+            if (request.method === "DELETE") {
+                const existing = await env.DB.prepare("SELECT id FROM bills WHERE id = ?").bind(billId).all();
+                if (existing.results.length === 0) return json({ error: "Bill not found" }, 404);
+                await env.DB.batch([
+                    env.DB.prepare("DELETE FROM bill_items WHERE bill_id = ?").bind(billId),
+                    env.DB.prepare("DELETE FROM bills WHERE id = ?").bind(billId),
+                ]);
+                return new Response(null, { status: 204 });
+            }
+
+            return json({ error: "Method not allowed" }, 405);
+        }
+
         if (url.pathname === "/api/bills") {
             if (request.method === "POST") {
                 const body = await readJson(request);
@@ -244,26 +345,27 @@ export default {
                         return json({ error: "Customer not found" }, 404);
                     }
                 }
-
-                const customerExpression = bill.customerId === null ? "last_insert_rowid()" : "?";
-                const statements = [];
-                if (bill.customerId === null) {
-                    statements.push(
-                        env.DB.prepare(
-                            "INSERT INTO customers (code, name, mobile, address) VALUES (?, ?, ?, ?)",
-                        ).bind(null, bill.customerName, bill.customerMobile, bill.customerAddress),
-                    );
+                for (const item of bill.items) {
+                    const product = await env.DB
+                        .prepare("SELECT id FROM products WHERE name = ? AND (? IS NULL OR code = ?) LIMIT 1")
+                        .bind(item.productName, item.productCode, item.productCode)
+                        .all();
+                    if (product.results.length === 0) {
+                        return json({ error: `Product not found: ${item.productName}` }, 404);
+                    }
                 }
+
+                const statements = [];
                 statements.push(
                     env.DB.prepare(
                         `INSERT INTO bills
                             (bill_no, bill_date, due_date, customer_id, customer_name, customer_mobile, customer_address, paid)
-                        VALUES (?, ?, ?, ${customerExpression}, ?, ?, ?, ?)`,
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                     ).bind(
                         bill.billNo,
                         bill.billDate,
                         bill.dueDate,
-                        ...(bill.customerId === null ? [] : [bill.customerId]),
+                        bill.customerId,
                         bill.customerName,
                         bill.customerMobile,
                         bill.customerAddress,
@@ -283,9 +385,8 @@ export default {
                 }
 
                 const results = await env.DB.batch(statements);
-                const billResultIndex = bill.customerId === null ? 1 : 0;
                 return json({
-                    id: results[billResultIndex].meta.last_row_id,
+                    id: results[0].meta.last_row_id,
                     billNo: bill.billNo,
                     total: bill.items.reduce((sum, item) => sum + item.amount, 0),
                     due: bill.items.reduce((sum, item) => sum + item.amount, 0) - bill.paid,
@@ -310,6 +411,53 @@ export default {
                     : env.DB.prepare(`${base} GROUP BY b.id ORDER BY b.id DESC LIMIT 100`);
                 const { results } = await stmt.all();
                 return json(results);
+            }
+
+            return json({ error: "Method not allowed" }, 405);
+        }
+
+        const customerMatch = /^\/api\/customers\/(\d+)$/.exec(url.pathname);
+        if (customerMatch) {
+            const customerId = Number(customerMatch[1]);
+            if (!Number.isSafeInteger(customerId) || customerId < 1) {
+                return json({ error: "Invalid customer id" }, 400);
+            }
+
+            if (request.method === "GET") {
+                const customer = await env.DB
+                    .prepare("SELECT id, code, name, mobile, address FROM customers WHERE id = ?")
+                    .bind(customerId)
+                    .all();
+                return customer.results[0]
+                    ? json(customer.results[0])
+                    : json({ error: "Customer not found" }, 404);
+            }
+
+            if (request.method === "PUT") {
+                const body = await readJson(request);
+                if (!body.ok) return json({ error: body.error }, 400);
+                const parsed = parseCustomer(body.value);
+                if (!parsed.ok) return json({ error: parsed.error }, 400);
+                const c = parsed.value;
+                const result = await env.DB
+                    .prepare("UPDATE customers SET code = ?, name = ?, mobile = ?, address = ? WHERE id = ?")
+                    .bind(c.code, c.name, c.mobile, c.address, customerId)
+                    .run();
+                if (result.meta.changes === 0) return json({ error: "Customer not found" }, 404);
+                return json({ id: customerId, ...c });
+            }
+
+            if (request.method === "DELETE") {
+                const linkedBills = await env.DB
+                    .prepare("SELECT id FROM bills WHERE customer_id = ? LIMIT 1")
+                    .bind(customerId)
+                    .all();
+                if (linkedBills.results.length > 0) {
+                    return json({ error: "This customer has saved bills and cannot be deleted." }, 409);
+                }
+                const result = await env.DB.prepare("DELETE FROM customers WHERE id = ?").bind(customerId).run();
+                if (result.meta.changes === 0) return json({ error: "Customer not found" }, 404);
+                return new Response(null, { status: 204 });
             }
 
             return json({ error: "Method not allowed" }, 405);
@@ -340,6 +488,46 @@ export default {
                     : env.DB.prepare(`${base} ORDER BY id DESC LIMIT 100`);
                 const { results } = await stmt.all();
                 return json(results);
+            }
+
+            return json({ error: "Method not allowed" }, 405);
+        }
+
+        const productMatch = /^\/api\/products\/(\d+)$/.exec(url.pathname);
+        if (productMatch) {
+            const productId = Number(productMatch[1]);
+            if (!Number.isSafeInteger(productId) || productId < 1) {
+                return json({ error: "Invalid product id" }, 400);
+            }
+
+            if (request.method === "GET") {
+                const product = await env.DB
+                    .prepare("SELECT id, code, name FROM products WHERE id = ?")
+                    .bind(productId)
+                    .all();
+                return product.results[0]
+                    ? json(product.results[0])
+                    : json({ error: "Product not found" }, 404);
+            }
+
+            if (request.method === "PUT") {
+                const body = await readJson(request);
+                if (!body.ok) return json({ error: body.error }, 400);
+                const parsed = parseProduct(body.value);
+                if (!parsed.ok) return json({ error: parsed.error }, 400);
+                const p = parsed.value;
+                const result = await env.DB
+                    .prepare("UPDATE products SET code = ?, name = ? WHERE id = ?")
+                    .bind(p.code, p.name, productId)
+                    .run();
+                if (result.meta.changes === 0) return json({ error: "Product not found" }, 404);
+                return json({ id: productId, ...p });
+            }
+
+            if (request.method === "DELETE") {
+                const result = await env.DB.prepare("DELETE FROM products WHERE id = ?").bind(productId).run();
+                if (result.meta.changes === 0) return json({ error: "Product not found" }, 404);
+                return new Response(null, { status: 204 });
             }
 
             return json({ error: "Method not allowed" }, 405);
