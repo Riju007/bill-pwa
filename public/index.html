@@ -1,29 +1,2380 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home | Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f6fb">
+    <meta name="description" content="A simple, polished workspace for creating and tracking bills.">
+    <title>Billwise | Billing workspace</title>
+    <script>
+        (() => {
+            const savedTheme = localStorage.getItem("billwise-theme");
+            if (savedTheme === "dark" || (savedTheme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)) {
+                document.documentElement.dataset.theme = "dark";
+            }
+        })();
+    </script>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #18213a;
+            --muted: #788198;
+            --line: #e7e9f1;
+            --surface: #fff;
+            --canvas: #f5f6fb;
+            --primary: #5846d8;
+            --primary-dark: #4331bd;
+            --primary-soft: #efedff;
+            --navy: #202b49;
+            --green: #178b65;
+            --green-soft: #e6f6ef;
+            --amber: #a56a11;
+            --amber-soft: #fff4df;
+            --red: #bd4756;
+            --shadow: 0 16px 44px rgb(34 42 74 / 7%);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-width: 320px;
+            margin: 0;
+            color: var(--ink);
+            background: var(--canvas);
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible {
+            outline: 3px solid rgb(88 70 216 / 25%);
+            outline-offset: 2px;
+        }
+
+        .app {
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed;
+            z-index: 5;
+            inset: 0 auto 0 0;
+            display: flex;
+            width: 252px;
+            flex-direction: column;
+            padding: 24px 16px;
+            color: #fff;
+            background: var(--navy);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 10px 28px;
+        }
+
+        .brand img {
+            width: 76px;
+            height: 44px;
+            border: 1px solid rgb(255 255 255 / 13%);
+            border-radius: 9px;
+            background: #07091c;
+            object-fit: contain;
+        }
+
+        .brand-name {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 750;
+            letter-spacing: -.03em;
+        }
+
+        .brand-caption {
+            margin: 3px 0 0;
+            color: #aeb8d3;
+            font-size: 11px;
+        }
+
+        .nav-label {
+            margin: 5px 12px 10px;
+            color: #8e9bbd;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .nav {
+            display: grid;
+            gap: 6px;
+        }
+
+        .nav-button {
+            display: flex;
+            min-height: 46px;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 12px;
+            color: #c5cce0;
+            background: transparent;
+            text-align: left;
+            transition: background .18s ease, color .18s ease;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            color: #fff;
+            background: rgb(255 255 255 / 11%);
+        }
+
+        .nav-button.active {
+            box-shadow: inset 3px 0 #9b8cff;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 auto;
+        }
+
+        .sidebar-note {
+            margin-top: auto;
+            padding: 15px 14px;
+            border: 1px solid rgb(255 255 255 / 10%);
+            border-radius: 14px;
+            color: #c3cbe0;
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .sidebar-note strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        .main {
+            min-height: 100vh;
+            margin-left: 252px;
+        }
+
+        .topbar {
+            position: sticky;
+            z-index: 4;
+            top: 0;
+            display: flex;
+            min-height: 76px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px clamp(20px, 4vw, 54px);
+            border-bottom: 1px solid var(--line);
+            background: rgb(255 255 255 / 90%);
+            backdrop-filter: blur(14px);
+        }
+
+        .mobile-brand,
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mobile-brand {
+            display: none;
+            font-weight: 750;
+        }
+
+        .mobile-brand img {
+            width: 50px;
+            height: 29px;
+            border-radius: 7px;
+            background: #07091c;
+            object-fit: contain;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            min-width: 40px;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 10px;
+            border: 1px solid var(--line);
+            border-radius: 11px;
+            color: var(--ink);
+            background: var(--surface);
+            font-size: 12px;
+            font-weight: 650;
+        }
+
+        .theme-toggle svg {
+            width: 17px;
+            height: 17px;
+            flex: 0 0 auto;
+        }
+
+        .theme-toggle-label {
+            display: inline;
+        }
+
+        .today {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .avatar {
+            display: grid;
+            width: 38px;
+            height: 38px;
+            place-items: center;
+            border: 1px solid #e3dfff;
+            border-radius: 50%;
+            color: var(--primary-dark);
+            background: var(--primary-soft);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .content {
+            width: min(1440px, 100%);
+            margin: 0 auto;
+            padding: 34px clamp(20px, 4vw, 54px) 60px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: enter .2s ease-out;
+        }
+
+        @keyframes enter {
+            from {
+                opacity: .5;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-heading {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .eyebrow {
+            margin: 0 0 7px;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin-top: 0;
+        }
+
+        h1 {
+            margin-bottom: 7px;
+            font-size: clamp(26px, 3vw, 34px);
+            letter-spacing: -.045em;
+            line-height: 1.15;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            padding: 0 17px;
+            border: 1px solid transparent;
+            border-radius: 11px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-1px);
+        }
+
+        .button.primary {
+            color: #fff;
+            background: var(--primary);
+            box-shadow: 0 8px 18px rgb(88 70 216 / 18%);
+        }
+
+        .button.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .button.secondary {
+            border-color: var(--line);
+            color: var(--ink);
+            background: #fff;
+        }
+
+        .button.ghost {
+            min-height: 38px;
+            padding: 0 12px;
+            border-color: var(--line);
+            color: var(--muted);
+            background: #fff;
+        }
+
+        .button.danger {
+            color: var(--red);
+            background: #fff0f1;
+        }
+
+        .button svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .stat-card,
+        .panel,
+        .form-card {
+            border: 1px solid var(--line);
+            border-radius: 17px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card {
+            padding: 20px 21px;
+        }
+
+        .stat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .stat-icon {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+            border-radius: 11px;
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .stat-icon.green {
+            color: var(--green);
+            background: var(--green-soft);
+        }
+
+        .stat-icon.amber {
+            color: var(--amber);
+            background: var(--amber-soft);
+        }
+
+        .stat-icon svg {
+            width: 19px;
+            height: 19px;
+        }
+
+        .stat-value {
+            margin: 13px 0 4px;
+            font-size: clamp(24px, 3vw, 30px);
+            font-weight: 780;
+            letter-spacing: -.04em;
+        }
+
+        .stat-foot {
+            margin: 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .panel {
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 18px 21px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: -.02em;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f0f1f5;
+            white-space: nowrap;
+        }
+
+        th {
+            color: var(--muted);
+            background: #fbfbfd;
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+        }
+
+        td {
+            font-size: 13px;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .bill-number {
+            color: var(--primary-dark);
+            font-weight: 750;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .status.paid {
+            color: var(--green);
+            background: var(--green-soft);
+        }
+
+        .status.due {
+            color: var(--amber);
+            background: var(--amber-soft);
+        }
+
+        .empty-state {
+            padding: 36px 18px;
+            color: var(--muted);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .empty-state strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--ink);
+            font-size: 14px;
+        }
+
+        .form-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 310px;
+            align-items: start;
+            gap: 20px;
+        }
+
+        .form-main {
+            display: grid;
+            gap: 16px;
+        }
+
+        .form-card {
+            padding: 22px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 19px;
+        }
+
+        .section-number {
+            display: grid;
+            width: 31px;
+            height: 31px;
+            flex: 0 0 auto;
+            place-items: center;
+            border-radius: 10px;
+            color: var(--primary);
+            background: var(--primary-soft);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .section-heading h2 {
+            margin: 1px 0 4px;
+            font-size: 16px;
+            letter-spacing: -.02em;
+        }
+
+        .section-heading p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
+            min-width: 0;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field label {
+            color: #424b62;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select,
+        .field textarea,
+        .search-box input {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid #dfe2eb;
+            border-radius: 10px;
+            color: var(--ink);
+            background: #fff;
+            font-size: 13px;
+            transition: border-color .16s ease, box-shadow .16s ease;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus,
+        .search-box input:focus {
+            border-color: #9c91ed;
+            box-shadow: 0 0 0 3px rgb(88 70 216 / 9%);
+            outline: 0;
+        }
+
+        .field textarea {
+            min-height: 82px;
+            resize: vertical;
+        }
+
+        .field input::placeholder,
+        .field textarea::placeholder {
+            color: #a2a8b7;
+        }
+
+        .field-hint {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .items-head {
+            display: grid;
+            grid-template-columns: minmax(130px, 1.1fr) minmax(130px, 1.3fr) minmax(112px, 1fr) minmax(95px, .7fr) 38px;
+            gap: 9px;
+            padding: 0 0 8px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: minmax(130px, 1.1fr) minmax(130px, 1.3fr) minmax(112px, 1fr) minmax(95px, .7fr) 38px;
+            gap: 9px;
+            margin-bottom: 10px;
+        }
+
+        .item-row input {
+            width: 100%;
+            min-width: 0;
+            min-height: 42px;
+            padding: 9px 10px;
+            border: 1px solid #dfe2eb;
+            border-radius: 9px;
+            color: var(--ink);
+            background: #fff;
+            font-size: 12px;
+        }
+
+        .remove-item {
+            display: grid;
+            width: 38px;
+            min-height: 42px;
+            place-items: center;
+            border: 1px solid #f0dfe1;
+            border-radius: 9px;
+            color: var(--red);
+            background: #fff7f7;
+        }
+
+        .remove-item svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        .add-item {
+            margin-top: 3px;
+        }
+
+        .summary-card {
+            position: sticky;
+            top: 94px;
+            padding: 22px;
+            border: 1px solid #e2defa;
+            border-radius: 17px;
+            background: linear-gradient(160deg, #fff 20%, #f7f5ff);
+            box-shadow: var(--shadow);
+        }
+
+        .summary-card h2 {
+            margin: 0 0 5px;
+            font-size: 17px;
+        }
+
+        .summary-card > p {
+            margin: 0 0 20px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .summary-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 13px 0;
+            color: #677087;
+            font-size: 13px;
+        }
+
+        .summary-line strong {
+            color: var(--ink);
+            font-size: 14px;
+        }
+
+        .summary-divider {
+            margin: 17px 0;
+            border: 0;
+            border-top: 1px solid #e5e2f2;
+        }
+
+        .summary-line.total {
+            color: var(--ink);
+            font-weight: 750;
+        }
+
+        .summary-line.total strong {
+            color: var(--primary-dark);
+            font-size: 22px;
+            letter-spacing: -.03em;
+        }
+
+        .summary-line.due strong {
+            color: var(--red);
+            font-size: 17px;
+        }
+
+        .summary-paid {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 18px 0;
+        }
+
+        .summary-paid label {
+            flex: 0 0 auto;
+            color: #677087;
+            font-size: 13px;
+        }
+
+        .summary-paid input {
+            width: 100%;
+            min-width: 0;
+            min-height: 42px;
+            padding: 9px 10px;
+            border: 1px solid #dfe2eb;
+            border-radius: 9px;
+            color: var(--ink);
+            background: #fff;
+        }
+
+        .summary-actions {
+            display: grid;
+            gap: 9px;
+            margin-top: 21px;
+        }
+
+        .summary-actions .button {
+            width: 100%;
+        }
+
+        .form-message {
+            min-height: 16px;
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.45;
+            text-align: center;
+        }
+
+        .form-message.error {
+            color: var(--red);
+        }
+
+        .form-message.success {
+            color: var(--green);
+        }
+
+        .list-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-box {
+            width: min(300px, 45vw);
+        }
+
+        .search-box input {
+            min-height: 39px;
+        }
+
+        .directory-toolbar .search-box {
+            flex: 1;
+        }
+
+        .mobile-nav {
+            display: none;
+        }
+
+        dialog {
+            width: min(560px, calc(100vw - 28px));
+            max-height: min(85vh, 760px);
+            padding: 0;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            color: var(--ink);
+            background: #fff;
+            box-shadow: 0 24px 80px rgb(20 27 50 / 22%);
+        }
+
+        dialog::backdrop {
+            background: rgb(19 26 49 / 48%);
+            backdrop-filter: blur(3px);
+        }
+
+        .dialog-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .dialog-head h2 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .dialog-body {
+            display: grid;
+            gap: 14px;
+            padding: 20px 22px;
+        }
+
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 9px;
+            padding: 14px 22px;
+            border-top: 1px solid var(--line);
+            background: #fbfbfd;
+        }
+
+        .dialog-message {
+            min-height: 16px;
+            margin: 0;
+            color: var(--red);
+            font-size: 12px;
+        }
+
+        .preview-content {
+            padding: 22px;
+        }
+
+        .preview-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 19px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .preview-meta strong {
+            display: block;
+            margin-top: 4px;
+            color: var(--ink);
+            font-size: 13px;
+        }
+
+        .preview-items {
+            width: 100%;
+            margin-bottom: 18px;
+        }
+
+        .preview-items th,
+        .preview-items td {
+            padding: 10px 8px;
+        }
+
+        .preview-items td:last-child,
+        .preview-items th:last-child {
+            text-align: right;
+        }
+
+        .preview-total {
+            display: grid;
+            gap: 8px;
+            justify-content: end;
+            text-align: right;
+            font-size: 13px;
+        }
+
+        .preview-total strong {
+            font-size: 17px;
+        }
+
+        .loading {
+            color: var(--muted);
+        }
+
+        @media (max-width: 1100px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .main {
+                margin-left: 220px;
+            }
+
+            .form-layout {
+                grid-template-columns: minmax(0, 1fr) 275px;
+            }
+
+            .items-head,
+            .item-row {
+                grid-template-columns: minmax(95px, 1fr) minmax(110px, 1.2fr) minmax(95px, 1fr) minmax(80px, .7fr) 36px;
+                gap: 7px;
+            }
+        }
+
+        @media (max-width: 820px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                margin-left: 0;
+                padding-bottom: 70px;
+            }
+
+            .topbar {
+                min-height: 66px;
+                padding: 10px 20px;
+            }
+
+            .mobile-brand {
+                display: flex;
+            }
+
+            .today {
+                display: none;
+            }
+
+            .content {
+                padding-top: 28px;
+            }
+
+            .form-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-card {
+                position: static;
+            }
+
+            .mobile-nav {
+                position: fixed;
+                z-index: 10;
+                inset: auto 0 0;
+                display: grid;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+                border-top: 1px solid var(--line);
+                background: rgb(255 255 255 / 96%);
+                box-shadow: 0 -7px 25px rgb(28 37 66 / 6%);
+                backdrop-filter: blur(12px);
+            }
+
+            .mobile-nav .nav-button {
+                min-height: 49px;
+                flex-direction: column;
+                justify-content: center;
+                gap: 3px;
+                padding: 3px;
+                color: var(--muted);
+                font-size: 10px;
+            }
+
+            .mobile-nav .nav-button.active {
+                color: var(--primary);
+                background: transparent;
+                box-shadow: none;
+            }
+
+            .mobile-nav .nav-icon {
+                width: 19px;
+                height: 19px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .content {
+                padding: 22px 15px 32px;
+            }
+
+            .topbar {
+                padding: 9px 15px;
+            }
+
+            .theme-toggle-label {
+                display: none;
+            }
+
+            .page-heading {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 13px;
+                margin-bottom: 19px;
+            }
+
+            .page-heading > .button {
+                width: 100%;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            .stat-card {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 15px 16px;
+            }
+
+            .stat-top {
+                flex-direction: row-reverse;
+            }
+
+            .stat-label {
+                font-size: 12px;
+            }
+
+            .stat-value {
+                margin: 0;
+                font-size: 23px;
+            }
+
+            .stat-foot {
+                display: none;
+            }
+
+            .panel-header {
+                padding: 15px;
+            }
+
+            .panel-header h2 {
+                font-size: 15px;
+            }
+
+            th,
+            td {
+                padding: 12px 14px;
+            }
+
+            .form-card,
+            .summary-card {
+                padding: 17px 15px;
+                border-radius: 14px;
+            }
+
+            .field-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .field.full {
+                grid-column: auto;
+            }
+
+            .items-head {
+                display: none;
+            }
+
+            .item-row {
+                position: relative;
+                grid-template-columns: 1fr 1fr;
+                gap: 9px;
+                padding: 12px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                background: #fbfbfd;
+            }
+
+            .item-row input {
+                min-height: 43px;
+                font-size: 12px;
+            }
+
+            .item-row input::placeholder {
+                color: #7d8495;
+                opacity: 1;
+            }
+
+            .remove-item {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 34px;
+                min-height: 34px;
+                background: #fff;
+            }
+
+            .item-row input[data-field="productName"] {
+                grid-column: 1 / -1;
+                padding-right: 47px;
+            }
+
+            .item-row input[data-field="productCode"] {
+                grid-column: 1 / -1;
+            }
+
+            .list-toolbar {
+                width: 100%;
+            }
+
+            .directory-toolbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .directory-toolbar .button {
+                width: 100%;
+            }
+
+            .preview-meta {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .dialog-head,
+            .preview-content,
+            .dialog-body {
+                padding: 16px;
+            }
+
+            .dialog-actions {
+                padding: 12px 16px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --ink: #e5f1e8;
+            --muted: #9db1a3;
+            --line: #2a3d31;
+            --surface: #111d16;
+            --canvas: #09120d;
+            --primary: #35c878;
+            --primary-dark: #22a760;
+            --primary-soft: #173c29;
+            --navy: #07120b;
+            --green: #53d991;
+            --green-soft: #173b29;
+            --amber: #efbd68;
+            --amber-soft: #3a2c18;
+            --red: #ff8791;
+            --shadow: 0 16px 44px rgb(0 0 0 / 24%);
+        }
+
+        :root[data-theme="dark"] body {
+            color: var(--ink);
+            background: var(--canvas);
+        }
+
+        :root[data-theme="dark"] button:focus-visible,
+        :root[data-theme="dark"] input:focus-visible,
+        :root[data-theme="dark"] select:focus-visible,
+        :root[data-theme="dark"] textarea:focus-visible {
+            outline-color: rgb(53 200 120 / 48%);
+        }
+
+        :root[data-theme="dark"] .topbar {
+            background: rgb(9 18 13 / 92%);
+        }
+
+        :root[data-theme="dark"] .nav-button.active {
+            box-shadow: inset 3px 0 var(--primary);
+        }
+
+        :root[data-theme="dark"] .avatar {
+            border-color: #315940;
+        }
+
+        :root[data-theme="dark"] .theme-toggle,
+        :root[data-theme="dark"] .button.secondary,
+        :root[data-theme="dark"] .button.ghost {
+            border-color: var(--line);
+            color: var(--ink);
+            background: #15231a;
+        }
+
+        :root[data-theme="dark"] .button.primary {
+            color: #07140b;
+            box-shadow: 0 8px 18px rgb(53 200 120 / 18%);
+        }
+
+        :root[data-theme="dark"] .button.primary:hover {
+            color: #07140b;
+        }
+
+        :root[data-theme="dark"] .button.danger {
+            color: var(--red);
+            background: #321b20;
+        }
+
+        :root[data-theme="dark"] th,
+        :root[data-theme="dark"] td {
+            border-bottom-color: #26372d;
+        }
+
+        :root[data-theme="dark"] th,
+        :root[data-theme="dark"] .dialog-actions {
+            background: #0e1912;
+        }
+
+        :root[data-theme="dark"] .field label {
+            color: #c4d4c9;
+        }
+
+        :root[data-theme="dark"] .field input,
+        :root[data-theme="dark"] .field select,
+        :root[data-theme="dark"] .field textarea,
+        :root[data-theme="dark"] .search-box input,
+        :root[data-theme="dark"] .item-row input,
+        :root[data-theme="dark"] .summary-paid input {
+            border-color: #344a3a;
+            color: var(--ink);
+            background: #0d1811;
+        }
+
+        :root[data-theme="dark"] .field input:focus,
+        :root[data-theme="dark"] .field select:focus,
+        :root[data-theme="dark"] .field textarea:focus,
+        :root[data-theme="dark"] .search-box input:focus {
+            border-color: #3cbd78;
+            box-shadow: 0 0 0 3px rgb(53 200 120 / 13%);
+        }
+
+        :root[data-theme="dark"] .field input::placeholder,
+        :root[data-theme="dark"] .field textarea::placeholder,
+        :root[data-theme="dark"] .item-row input::placeholder {
+            color: #81988a;
+        }
+
+        :root[data-theme="dark"] .remove-item {
+            border-color: #4a2a30;
+            background: #28191c;
+        }
+
+        :root[data-theme="dark"] .summary-card {
+            border-color: #2c4935;
+            background: linear-gradient(160deg, #111d16 20%, #14251a);
+        }
+
+        :root[data-theme="dark"] .summary-line,
+        :root[data-theme="dark"] .summary-paid label {
+            color: var(--muted);
+        }
+
+        :root[data-theme="dark"] .summary-divider {
+            border-top-color: var(--line);
+        }
+
+        :root[data-theme="dark"] .item-row {
+            background: #0e1912;
+        }
+
+        :root[data-theme="dark"] .mobile-nav {
+            background: rgb(9 18 13 / 96%);
+            box-shadow: 0 -7px 25px rgb(0 0 0 / 24%);
+        }
+
+        :root[data-theme="dark"] dialog {
+            border-color: var(--line);
+            background: var(--surface);
+            box-shadow: 0 24px 80px rgb(0 0 0 / 46%);
+        }
+
+        :root[data-theme="dark"] dialog::backdrop {
+            background: rgb(0 0 0 / 66%);
+        }
+    </style>
 </head>
 
 <body>
-    <h1 id="heading">Billing Software v2</h1>
-    <p id="time">Get Current Time</p>
-    <button id="test-btn">Click Me</button>
+    <div class="app">
+        <aside class="sidebar" aria-label="Main navigation">
+            <div class="brand">
+                <img src="/pb-logo.gif" alt="PB mobile billing logo">
+                <div>
+                    <p class="brand-name">Billwise</p>
+                    <p class="brand-caption">Billing workspace</p>
+                </div>
+            </div>
+            <p class="nav-label">Workspace</p>
+            <nav class="nav">
+                <button class="nav-button active" type="button" data-page="dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+                    Overview
+                </button>
+                <button class="nav-button" type="button" data-page="create">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+                    Create a bill
+                </button>
+                <button class="nav-button" type="button" data-page="bills">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h7"/></svg>
+                    All bills
+                </button>
+                <button class="nav-button" type="button" data-page="customers">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3.5 3.5 0 0 1 0 6.8M18 14a5.8 5.8 0 0 1 3.5 5.5"/></svg>
+                    Customers
+                </button>
+                <button class="nav-button" type="button" data-page="products">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg>
+                    Products
+                </button>
+            </nav>
+            <div class="sidebar-note">
+                <strong>A clearer way to bill.</strong>
+                Create a bill, keep customer details together, and track what is still due.
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div class="mobile-brand">
+                    <img src="/pb-logo.gif" alt="">
+                    <span>Billwise</span>
+                </div>
+                <span class="today" id="today-label"></span>
+                <div class="topbar-actions">
+                    <span class="today">Demo Mobile Shop</span>
+                    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg>
+                        <span class="theme-toggle-label">Dark theme</span>
+                    </button>
+                    <span class="avatar" aria-label="Demo shop account">PB</span>
+                </div>
+            </header>
+
+            <div class="content">
+                <section class="page active" id="page-dashboard" aria-labelledby="dashboard-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Your workspace</p>
+                            <h1 id="dashboard-title">Good to see you</h1>
+                            <p class="subtitle">Here is a quick look at your billing activity.</p>
+                        </div>
+                        <button class="button primary" type="button" data-go="create">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                            Create new bill
+                        </button>
+                    </div>
+
+                    <div class="stats" aria-live="polite">
+                        <article class="stat-card">
+                            <div>
+                                <div class="stat-top">
+                                    <span class="stat-label">Total billed</span>
+                                    <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/></svg></span>
+                                </div>
+                                <p class="stat-value" id="stat-sales">—</p>
+                                <p class="stat-foot">Across all saved bills</p>
+                            </div>
+                        </article>
+                        <article class="stat-card">
+                            <div>
+                                <div class="stat-top">
+                                    <span class="stat-label">Awaiting payment</span>
+                                    <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                                </div>
+                                <p class="stat-value" id="stat-due">—</p>
+                                <p class="stat-foot">Outstanding balance</p>
+                            </div>
+                        </article>
+                        <article class="stat-card">
+                            <div>
+                                <div class="stat-top">
+                                    <span class="stat-label">Bills created</span>
+                                    <span class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h5"/></svg></span>
+                                </div>
+                                <p class="stat-value" id="stat-count">—</p>
+                                <p class="stat-foot">All time</p>
+                            </div>
+                        </article>
+                    </div>
+
+                    <section class="panel" aria-labelledby="recent-title">
+                        <div class="panel-header">
+                            <h2 id="recent-title">Recent bills</h2>
+                            <button class="button ghost" type="button" data-go="bills">View all</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bill number</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Payment</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-bills">
+                                    <tr><td class="empty-state loading" colspan="5">Loading your bills…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+
+                <section class="page" id="page-create" aria-labelledby="create-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Billing</p>
+                            <h1 id="create-title">Create a new bill</h1>
+                            <p class="subtitle">Add the bill details, customer, and products below.</p>
+                        </div>
+                    </div>
+
+                    <form id="bill-form">
+                        <div class="form-layout">
+                            <div class="form-main">
+                                <section class="form-card" aria-labelledby="bill-details-title">
+                                    <div class="section-heading">
+                                        <span class="section-number">01</span>
+                                        <div>
+                                            <h2 id="bill-details-title">Bill details</h2>
+                                            <p>Set the bill number and important dates.</p>
+                                        </div>
+                                    </div>
+                                    <div class="field-grid">
+                                        <div class="field">
+                                            <label for="bill-number">Bill number</label>
+                                            <input id="bill-number" name="billNo" maxlength="50" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="bill-date">Bill date</label>
+                                            <input id="bill-date" name="billDate" type="date" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="due-date">Payment due date <span class="field-hint">(optional)</span></label>
+                                            <input id="due-date" name="dueDate" type="date">
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="form-card" aria-labelledby="customer-title">
+                                    <div class="section-heading">
+                                        <span class="section-number">02</span>
+                                        <div>
+                                            <h2 id="customer-title">Customer</h2>
+                                            <p>Choose an existing customer or add someone new.</p>
+                                        </div>
+                                    </div>
+                                    <div class="field-grid">
+                                        <div class="field full">
+                                            <label for="customer-select">Existing customer</label>
+                                            <select id="customer-select">
+                                                <option value="">Add a new customer</option>
+                                            </select>
+                                        </div>
+                                        <div class="field">
+                                            <label for="customer-name">Customer name</label>
+                                            <input id="customer-name" name="customerName" maxlength="100" autocomplete="name" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="customer-mobile">Mobile number</label>
+                                            <input id="customer-mobile" name="customerMobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number">
+                                        </div>
+                                        <div class="field full">
+                                            <label for="customer-address">Customer address</label>
+                                            <textarea id="customer-address" name="customerAddress" maxlength="300" autocomplete="street-address" placeholder="Street, area, city"></textarea>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="form-card" aria-labelledby="items-title">
+                                    <div class="section-heading">
+                                        <span class="section-number">03</span>
+                                        <div>
+                                            <h2 id="items-title">Products / items</h2>
+                                            <p>Add each item and its amount. Your total updates automatically.</p>
+                                        </div>
+                                    </div>
+                                    <div class="items-head" aria-hidden="true">
+                                        <span>Product code</span>
+                                        <span>Product name</span>
+                                        <span>IMEI / serial</span>
+                                        <span>Amount (₹)</span>
+                                        <span></span>
+                                    </div>
+                                    <div id="item-rows"></div>
+                                    <datalist id="product-options"></datalist>
+                                    <button class="button secondary add-item" id="add-item" type="button">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                        Add product
+                                    </button>
+                                </section>
+                            </div>
+
+                            <aside class="summary-card" aria-labelledby="summary-title">
+                                <h2 id="summary-title">Bill summary</h2>
+                                <p>Totals update as you add products.</p>
+                                <div class="summary-line">
+                                    <span>Items</span>
+                                    <strong id="item-count">0</strong>
+                                </div>
+                                <div class="summary-line total">
+                                    <span>Total</span>
+                                    <strong id="bill-total">₹0.00</strong>
+                                </div>
+                                <div class="summary-paid">
+                                    <label for="paid-amount">Paid</label>
+                                    <input id="paid-amount" name="paid" type="number" min="0" step="0.01" value="0" inputmode="decimal">
+                                </div>
+                                <div class="summary-line due">
+                                    <span>Due</span>
+                                    <strong id="bill-due">₹0.00</strong>
+                                </div>
+                                <hr class="summary-divider">
+                                <div class="summary-actions">
+                                    <button class="button secondary" id="preview-button" type="button">Preview bill</button>
+                                    <button class="button primary" id="save-button" type="submit">Save bill &amp; customer</button>
+                                    <button class="button danger" id="clear-button" type="button">Clear form</button>
+                                </div>
+                                <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+                            </aside>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="page" id="page-bills" aria-labelledby="bills-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Records</p>
+                            <h1 id="bills-title">All bills</h1>
+                            <p class="subtitle">Search bills by number, customer, or mobile.</p>
+                        </div>
+                        <div class="list-toolbar">
+                            <label class="search-box">
+                                <span class="field-hint" hidden>Search bills</span>
+                                <input id="bill-search" type="search" placeholder="Search bills…" aria-label="Search bills">
+                            </label>
+                        </div>
+                    </div>
+                    <section class="panel" aria-label="Bills list">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bill number</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Paid</th>
+                                        <th>Due</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-bills">
+                                    <tr><td class="empty-state loading" colspan="7">Loading bills…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+
+                <section class="page" id="page-customers" aria-labelledby="customers-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Directory</p>
+                            <h1 id="customers-title">Customers</h1>
+                            <p class="subtitle">Browse saved customer details or search by name, code, or phone.</p>
+                        </div>
+                        <div class="list-toolbar directory-toolbar">
+                            <label class="search-box">
+                                <input id="customer-search" type="search" placeholder="Search customers…" aria-label="Search customers">
+                            </label>
+                            <button class="button primary" id="new-customer-button" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+                                New customer
+                            </button>
+                        </div>
+                    </div>
+                    <section class="panel" aria-label="Customer list">
+                        <div class="panel-header">
+                            <h2>Customer directory</h2>
+                            <span class="field-hint" id="customer-count" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Customer code</th>
+                                        <th>Name</th>
+                                        <th>Mobile</th>
+                                        <th>Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customer-list">
+                                    <tr><td class="empty-state loading" colspan="4">Loading customers…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+
+                <section class="page" id="page-products" aria-labelledby="products-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Catalog</p>
+                            <h1 id="products-title">Products</h1>
+                            <p class="subtitle">Browse saved products or search by product name or code.</p>
+                        </div>
+                        <div class="list-toolbar directory-toolbar">
+                            <label class="search-box">
+                                <input id="product-search" type="search" placeholder="Search products…" aria-label="Search products">
+                            </label>
+                            <button class="button primary" id="new-product-button" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+                                New product
+                            </button>
+                        </div>
+                    </div>
+                    <section class="panel" aria-label="Product list">
+                        <div class="panel-header">
+                            <h2>Product catalog</h2>
+                            <span class="field-hint" id="product-count" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Product code</th>
+                                        <th>Product name</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="product-list">
+                                    <tr><td class="empty-state loading" colspan="2">Loading products…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Main navigation">
+        <button class="nav-button active" type="button" data-page="dashboard">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+            Home
+        </button>
+        <button class="nav-button" type="button" data-page="create">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+            New bill
+        </button>
+        <button class="nav-button" type="button" data-page="bills">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h7"/></svg>
+            Bills
+        </button>
+        <button class="nav-button" type="button" data-page="customers">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3.5 3.5 0 0 1 0 6.8M18 14a5.8 5.8 0 0 1 3.5 5.5"/></svg>
+            Customers
+        </button>
+        <button class="nav-button" type="button" data-page="products">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg>
+            Products
+        </button>
+    </nav>
+
+    <dialog id="preview-dialog" aria-labelledby="preview-title">
+        <div class="dialog-head">
+            <h2 id="preview-title">Bill preview</h2>
+            <button class="button ghost" id="close-preview" type="button" aria-label="Close preview">Close</button>
+        </div>
+        <div class="preview-content" id="preview-content"></div>
+    </dialog>
+
+    <dialog id="customer-dialog" aria-labelledby="customer-dialog-title">
+        <form id="customer-form">
+            <div class="dialog-head">
+                <h2 id="customer-dialog-title">New customer</h2>
+                <button class="button ghost" type="button" data-close-dialog="customer-dialog" aria-label="Close customer form">Close</button>
+            </div>
+            <div class="dialog-body">
+                <div class="field">
+                    <label for="new-customer-name">Customer name</label>
+                    <input id="new-customer-name" name="name" maxlength="100" autocomplete="name" required>
+                </div>
+                <div class="field">
+                    <label for="new-customer-code">Customer code <span class="field-hint">(optional)</span></label>
+                    <input id="new-customer-code" name="code" maxlength="20">
+                </div>
+                <div class="field">
+                    <label for="new-customer-mobile">Mobile number <span class="field-hint">(optional)</span></label>
+                    <input id="new-customer-mobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number">
+                </div>
+                <div class="field">
+                    <label for="new-customer-address">Address <span class="field-hint">(optional)</span></label>
+                    <textarea id="new-customer-address" name="address" maxlength="300" autocomplete="street-address"></textarea>
+                </div>
+                <p class="dialog-message" id="customer-dialog-message" role="status" aria-live="polite"></p>
+            </div>
+            <div class="dialog-actions">
+                <button class="button secondary" type="button" data-close-dialog="customer-dialog">Cancel</button>
+                <button class="button primary" id="save-customer-button" type="submit">Save customer</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="product-dialog" aria-labelledby="product-dialog-title">
+        <form id="product-form">
+            <div class="dialog-head">
+                <h2 id="product-dialog-title">New product</h2>
+                <button class="button ghost" type="button" data-close-dialog="product-dialog" aria-label="Close product form">Close</button>
+            </div>
+            <div class="dialog-body">
+                <div class="field">
+                    <label for="new-product-name">Product name</label>
+                    <input id="new-product-name" name="name" maxlength="100" required>
+                </div>
+                <div class="field">
+                    <label for="new-product-code">Product code <span class="field-hint">(optional)</span></label>
+                    <input id="new-product-code" name="code" maxlength="20">
+                </div>
+                <p class="dialog-message" id="product-dialog-message" role="status" aria-live="polite"></p>
+            </div>
+            <div class="dialog-actions">
+                <button class="button secondary" type="button" data-close-dialog="product-dialog">Cancel</button>
+                <button class="button primary" id="save-product-button" type="submit">Save product</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
-        const btn = document.querySelector("#test-btn")
-        btn.addEventListener("click", async () => {
-            const output = document.querySelector("#time")
-            try {
-                const res = await fetch("/api/time")
-                if (!res.ok) throw new Error("Server returned " + res.status)
-                const data = await res.json()
-                output.textContent = "Server time: " + data.ist
-            } catch (err) {
-                output.textContent = "Could not get time: " + err.message
+        const currency = new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            minimumFractionDigits: 2,
+        });
+        const form = document.querySelector("#bill-form");
+        const itemRows = document.querySelector("#item-rows");
+        const message = document.querySelector("#form-message");
+        const customerSelect = document.querySelector("#customer-select");
+        const money = (value) => currency.format(Number(value) || 0);
+        let customers = [];
+        let products = [];
+        let customerSearchTimer;
+        let productSearchTimer;
+        const themeToggle = document.querySelector("#theme-toggle");
+
+        function setTheme(theme, persist = false) {
+            const dark = theme === "dark";
+            document.documentElement.dataset.theme = dark ? "dark" : "light";
+            themeToggle.setAttribute("aria-pressed", String(dark));
+            themeToggle.setAttribute("aria-label", `Switch to ${dark ? "light" : "dark"} theme`);
+            themeToggle.title = `Switch to ${dark ? "light" : "dark"} theme`;
+            themeToggle.innerHTML = dark
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><span class="theme-toggle-label">Light theme</span>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg><span class="theme-toggle-label">Dark theme</span>';
+            document.querySelector('meta[name="theme-color"]').content = dark ? "#09120d" : "#f5f6fb";
+            if (persist) localStorage.setItem("billwise-theme", dark ? "dark" : "light");
+        }
+
+        setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+        themeToggle.addEventListener("click", () => {
+            setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+        });
+
+        async function api(path, options = {}) {
+            const response = await fetch(path, {
+                ...options,
+                headers: {
+                    ...(options.body ? { "Content-Type": "application/json" } : {}),
+                    ...options.headers,
+                },
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(payload?.error || `Request failed (${response.status})`);
             }
-        })
+            return payload;
+        }
+
+        function setMessage(text, kind = "") {
+            message.textContent = text;
+            message.className = `form-message${kind ? ` ${kind}` : ""}`;
+        }
+
+        async function saveDirectoryEntry(event, options) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const button = document.querySelector(options.button);
+            const status = document.querySelector(options.status);
+            if (!form.reportValidity()) return;
+            status.textContent = "";
+            button.disabled = true;
+            button.textContent = "Saving…";
+
+            try {
+                await api(options.endpoint, {
+                    method: "POST",
+                    body: JSON.stringify(Object.fromEntries(new FormData(form))),
+                });
+            } catch (error) {
+                status.textContent = error.message;
+                button.disabled = false;
+                button.textContent = options.buttonText;
+                return;
+            }
+
+            form.reset();
+            document.querySelector(options.dialog).close();
+            document.querySelector(options.search).value = "";
+            await options.reload();
+            try {
+                await loadLookups();
+            } catch (error) {
+                document.querySelector(options.count).textContent =
+                    `Saved, but billing lookups could not refresh: ${error.message}`;
+            }
+            button.disabled = false;
+            button.textContent = options.buttonText;
+        }
+
+        function setNavigation(page) {
+            document.querySelectorAll(".page").forEach((section) => {
+                section.classList.toggle("active", section.id === `page-${page}`);
+            });
+            document.querySelectorAll(".nav-button[data-page]").forEach((button) => {
+                const active = button.dataset.page === page;
+                button.classList.toggle("active", active);
+                if (active) button.setAttribute("aria-current", "page");
+                else button.removeAttribute("aria-current");
+            });
+            if (page === "bills") loadBills();
+            if (page === "dashboard") loadDashboard();
+            if (page === "customers") {
+                loadCustomerDirectory(document.querySelector("#customer-search").value.trim());
+            }
+            if (page === "products") {
+                loadProductDirectory(document.querySelector("#product-search").value.trim());
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function itemInput(field, placeholder, type = "text") {
+            const input = document.createElement("input");
+            input.type = type;
+            input.dataset.field = field;
+            input.placeholder = placeholder;
+            input.setAttribute("aria-label", placeholder);
+            if (field === "amount") {
+                input.min = "0.01";
+                input.step = "0.01";
+                input.inputMode = "decimal";
+                input.required = true;
+            }
+            if (field === "productName") {
+                input.required = true;
+                input.setAttribute("list", "product-options");
+            }
+            if (field === "productCode") input.maxLength = 20;
+            if (field === "imei") input.maxLength = 32;
+            input.addEventListener("input", updateTotals);
+            return input;
+        }
+
+        function addItem(values = {}) {
+            const row = document.createElement("div");
+            row.className = "item-row";
+            row.append(
+                itemInput("productCode", "Product code"),
+                itemInput("productName", "Product name"),
+                itemInput("imei", "IMEI / serial"),
+                itemInput("amount", "0.00", "number"),
+            );
+            const code = row.querySelector('[data-field="productCode"]');
+            const name = row.querySelector('[data-field="productName"]');
+            const imei = row.querySelector('[data-field="imei"]');
+            const amount = row.querySelector('[data-field="amount"]');
+            code.value = values.productCode || "";
+            name.value = values.productName || "";
+            imei.value = values.imei || "";
+            amount.value = values.amount || "";
+            const remove = document.createElement("button");
+            remove.className = "remove-item";
+            remove.type = "button";
+            remove.setAttribute("aria-label", "Remove product");
+            remove.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>';
+            remove.addEventListener("click", () => {
+                if (itemRows.children.length === 1) {
+                    row.querySelectorAll("input").forEach((input) => { input.value = ""; });
+                } else {
+                    row.remove();
+                }
+                updateTotals();
+            });
+            row.append(remove);
+            itemRows.append(row);
+            updateTotals();
+        }
+
+        function readItems() {
+            return [...itemRows.querySelectorAll(".item-row")].map((row) => ({
+                productCode: row.querySelector('[data-field="productCode"]').value.trim(),
+                productName: row.querySelector('[data-field="productName"]').value.trim(),
+                imei: row.querySelector('[data-field="imei"]').value.trim(),
+                amount: Number(row.querySelector('[data-field="amount"]').value),
+            })).filter((item) => item.productName || item.amount);
+        }
+
+        function updateTotals() {
+            const items = readItems();
+            const total = items.reduce((sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0), 0);
+            const paidInput = document.querySelector("#paid-amount");
+            const paid = Number(paidInput.value) || 0;
+            document.querySelector("#item-count").textContent = String(items.filter((item) => item.productName).length);
+            document.querySelector("#bill-total").textContent = money(total);
+            document.querySelector("#bill-due").textContent = money(Math.max(total - paid, 0));
+            paidInput.max = total.toFixed(2);
+            paidInput.setCustomValidity(paid > total ? "Paid amount cannot be greater than the total." : "");
+        }
+
+        function appendCell(row, value, className = "") {
+            const cell = document.createElement("td");
+            cell.textContent = value ?? "—";
+            if (className) cell.className = className;
+            row.append(cell);
+            return cell;
+        }
+
+        function dateLabel(value) {
+            if (!value) return "—";
+            const date = new Date(`${value}T00:00:00`);
+            return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }).format(date);
+        }
+
+        function paymentStatus(bill) {
+            return Number(bill.due) <= 0 ? ["Paid", "paid"] : ["Payment due", "due"];
+        }
+
+        function renderBillRows(target, bills, compact = false) {
+            target.replaceChildren();
+            if (!bills.length) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = compact ? 5 : 7;
+                cell.className = "empty-state";
+                cell.innerHTML = "<strong>No bills yet</strong>Once you save a bill, it will show up here.";
+                row.append(cell);
+                target.append(row);
+                return;
+            }
+            for (const bill of bills) {
+                const row = document.createElement("tr");
+                appendCell(row, bill.billNo, "bill-number");
+                appendCell(row, bill.customerName);
+                appendCell(row, dateLabel(bill.billDate));
+                appendCell(row, money(bill.total));
+                if (compact) {
+                    const [label, status] = paymentStatus({ due: Number(bill.total) - Number(bill.paid) });
+                    const cell = document.createElement("td");
+                    const badge = document.createElement("span");
+                    badge.className = `status ${status}`;
+                    badge.textContent = label;
+                    cell.append(badge);
+                    row.append(cell);
+                } else {
+                    appendCell(row, money(bill.paid));
+                    appendCell(row, money(bill.due));
+                    const cell = document.createElement("td");
+                    const [label, status] = paymentStatus(bill);
+                    const badge = document.createElement("span");
+                    badge.className = `status ${status}`;
+                    badge.textContent = label;
+                    cell.append(badge);
+                    row.append(cell);
+                }
+                target.append(row);
+            }
+        }
+
+        async function loadDashboard() {
+            const target = document.querySelector("#recent-bills");
+            try {
+                const data = await api("/api/dashboard");
+                document.querySelector("#stat-sales").textContent = money(data.summary.totalSales);
+                document.querySelector("#stat-due").textContent = money(data.summary.outstanding);
+                document.querySelector("#stat-count").textContent = String(data.summary.billCount || 0);
+                renderBillRows(target, data.recentBills || [], true);
+            } catch (error) {
+                target.replaceChildren();
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = 5;
+                cell.className = "empty-state";
+                cell.textContent = `Could not load billing data: ${error.message}`;
+                row.append(cell);
+                target.append(row);
+            }
+        }
+
+        async function loadBills(query = "") {
+            const target = document.querySelector("#all-bills");
+            try {
+                const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
+                const bills = await api(`/api/bills${suffix}`);
+                renderBillRows(target, bills);
+            } catch (error) {
+                target.replaceChildren();
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = 7;
+                cell.className = "empty-state";
+                cell.textContent = `Could not load bills: ${error.message}`;
+                row.append(cell);
+                target.append(row);
+            }
+        }
+
+        function showDirectoryMessage(target, columnCount, text) {
+            target.replaceChildren();
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = columnCount;
+            cell.className = "empty-state";
+            cell.textContent = text;
+            row.append(cell);
+            target.append(row);
+        }
+
+        async function loadCustomerDirectory(query = "") {
+            const target = document.querySelector("#customer-list");
+            const count = document.querySelector("#customer-count");
+            try {
+                const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
+                const results = await api(`/api/customers${suffix}`);
+                count.textContent = `${results.length} shown${results.length === 100 ? " · max 100" : ""}`;
+                if (!results.length) {
+                    showDirectoryMessage(target, 4, query ? "No customers match your search." : "No customers have been saved yet.");
+                    return;
+                }
+                target.replaceChildren();
+                for (const customer of results) {
+                    const row = document.createElement("tr");
+                    appendCell(row, customer.code || "—");
+                    appendCell(row, customer.name);
+                    appendCell(row, customer.mobile || "—");
+                    appendCell(row, customer.address || "—");
+                    target.append(row);
+                }
+            } catch (error) {
+                count.textContent = "";
+                showDirectoryMessage(target, 4, `Could not load customers: ${error.message}`);
+            }
+        }
+
+        async function loadProductDirectory(query = "") {
+            const target = document.querySelector("#product-list");
+            const count = document.querySelector("#product-count");
+            try {
+                const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
+                const results = await api(`/api/products${suffix}`);
+                count.textContent = `${results.length} shown${results.length === 100 ? " · max 100" : ""}`;
+                if (!results.length) {
+                    showDirectoryMessage(target, 2, query ? "No products match your search." : "No products have been saved yet.");
+                    return;
+                }
+                target.replaceChildren();
+                for (const product of results) {
+                    const row = document.createElement("tr");
+                    appendCell(row, product.code || "—");
+                    appendCell(row, product.name);
+                    target.append(row);
+                }
+            } catch (error) {
+                count.textContent = "";
+                showDirectoryMessage(target, 2, `Could not load products: ${error.message}`);
+            }
+        }
+
+        async function loadLookups() {
+            const results = await Promise.all([
+                api("/api/customers"),
+                api("/api/products"),
+            ]);
+            customers = results[0];
+            products = results[1];
+            customerSelect.replaceChildren(new Option("Add a new customer", ""));
+            for (const customer of customers) {
+                const detail = customer.mobile ? ` · ${customer.mobile}` : "";
+                customerSelect.add(new Option(`${customer.name}${detail}`, String(customer.id)));
+            }
+            const options = document.querySelector("#product-options");
+            options.replaceChildren();
+            for (const product of products) {
+                options.append(new Option(product.name));
+            }
+        }
+
+        function selectCustomer() {
+            const customer = customers.find((entry) => String(entry.id) === customerSelect.value);
+            document.querySelector("#customer-name").value = customer?.name || "";
+            document.querySelector("#customer-mobile").value = customer?.mobile || "";
+            document.querySelector("#customer-address").value = customer?.address || "";
+        }
+
+        function localDateISO(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+
+        function resetForm() {
+            form.reset();
+            customerSelect.value = "";
+            itemRows.replaceChildren();
+            addItem();
+            const today = localDateISO();
+            document.querySelector("#bill-date").value = today;
+            document.querySelector("#bill-number").value = makeBillNumber();
+            setMessage("");
+        }
+
+        function makeBillNumber() {
+            const day = localDateISO().replaceAll("-", "");
+            const suffix = Math.floor(1000 + Math.random() * 9000);
+            return `POS-${day}-${suffix}`;
+        }
+
+        function previewBill() {
+            if (!form.reportValidity()) return;
+            const items = readItems();
+            if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
+                setMessage("Add a product name and valid amount for each item.", "error");
+                return;
+            }
+            const total = items.reduce((sum, item) => sum + item.amount, 0);
+            const paid = Number(document.querySelector("#paid-amount").value) || 0;
+            if (paid > total) {
+                setMessage("Paid amount cannot be greater than the total.", "error");
+                return;
+            }
+            const container = document.querySelector("#preview-content");
+            container.replaceChildren();
+            const metadata = document.createElement("div");
+            metadata.className = "preview-meta";
+            const fields = [
+                ["Bill number", document.querySelector("#bill-number").value],
+                ["Bill date", dateLabel(document.querySelector("#bill-date").value)],
+                ["Customer", document.querySelector("#customer-name").value],
+                ["Mobile", document.querySelector("#customer-mobile").value || "—"],
+                ["Address", document.querySelector("#customer-address").value || "—"],
+            ];
+            for (const [label, value] of fields) {
+                const block = document.createElement("div");
+                block.textContent = label;
+                const strong = document.createElement("strong");
+                strong.textContent = value;
+                block.append(strong);
+                metadata.append(block);
+            }
+            const table = document.createElement("table");
+            table.className = "preview-items";
+            const head = document.createElement("thead");
+            const headRow = document.createElement("tr");
+            for (const label of ["Product", "IMEI / serial", "Amount"]) {
+                const cell = document.createElement("th");
+                cell.textContent = label;
+                headRow.append(cell);
+            }
+            head.append(headRow);
+            const body = document.createElement("tbody");
+            for (const item of items) {
+                const row = document.createElement("tr");
+                appendCell(row, item.productName);
+                appendCell(row, item.imei || "—");
+                appendCell(row, money(item.amount));
+                body.append(row);
+            }
+            table.append(head, body);
+            const totals = document.createElement("div");
+            totals.className = "preview-total";
+            const totalLabel = document.createElement("span");
+            totalLabel.textContent = `Total ${money(total)}`;
+            const paidLabel = document.createElement("span");
+            paidLabel.textContent = `Paid ${money(paid)} · Due ${money(total - paid)}`;
+            const totalStrong = document.createElement("strong");
+            totalStrong.textContent = `Balance due ${money(total - paid)}`;
+            totals.append(totalLabel, paidLabel, totalStrong);
+            container.append(metadata, table, totals);
+            document.querySelector("#preview-dialog").showModal();
+        }
+
+        document.querySelectorAll(".nav-button[data-page]").forEach((button) => {
+            button.addEventListener("click", () => setNavigation(button.dataset.page));
+        });
+        document.querySelectorAll("[data-go]").forEach((button) => {
+            button.addEventListener("click", () => setNavigation(button.dataset.go));
+        });
+        document.querySelector("#add-item").addEventListener("click", () => addItem());
+        document.querySelector("#paid-amount").addEventListener("input", updateTotals);
+        customerSelect.addEventListener("change", selectCustomer);
+        document.querySelector("#preview-button").addEventListener("click", previewBill);
+        document.querySelector("#close-preview").addEventListener("click", () => {
+            document.querySelector("#preview-dialog").close();
+        });
+        document.querySelector("#clear-button").addEventListener("click", resetForm);
+        document.querySelector("#bill-search").addEventListener("input", (event) => {
+            loadBills(event.target.value.trim());
+        });
+        document.querySelector("#customer-search").addEventListener("input", (event) => {
+            window.clearTimeout(customerSearchTimer);
+            customerSearchTimer = window.setTimeout(
+                () => loadCustomerDirectory(event.target.value.trim()),
+                250,
+            );
+        });
+        document.querySelector("#product-search").addEventListener("input", (event) => {
+            window.clearTimeout(productSearchTimer);
+            productSearchTimer = window.setTimeout(
+                () => loadProductDirectory(event.target.value.trim()),
+                250,
+            );
+        });
+        document.querySelector("#new-customer-button").addEventListener("click", () => {
+            document.querySelector("#customer-dialog").showModal();
+            document.querySelector("#new-customer-name").focus();
+        });
+        document.querySelector("#new-product-button").addEventListener("click", () => {
+            document.querySelector("#product-dialog").showModal();
+            document.querySelector("#new-product-name").focus();
+        });
+        document.querySelectorAll("[data-close-dialog]").forEach((button) => {
+            button.addEventListener("click", () => {
+                document.querySelector(`#${button.dataset.closeDialog}`).close();
+            });
+        });
+        document.querySelector("#customer-form").addEventListener("submit", (event) => {
+            saveDirectoryEntry(event, {
+                button: "#save-customer-button",
+                buttonText: "Save customer",
+                count: "#customer-count",
+                dialog: "#customer-dialog",
+                endpoint: "/api/customers",
+                reload: () => loadCustomerDirectory(),
+                search: "#customer-search",
+                status: "#customer-dialog-message",
+            });
+        });
+        document.querySelector("#product-form").addEventListener("submit", (event) => {
+            saveDirectoryEntry(event, {
+                button: "#save-product-button",
+                buttonText: "Save product",
+                count: "#product-count",
+                dialog: "#product-dialog",
+                endpoint: "/api/products",
+                reload: () => loadProductDirectory(),
+                search: "#product-search",
+                status: "#product-dialog-message",
+            });
+        });
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            setMessage("");
+            updateTotals();
+            if (!form.reportValidity()) return;
+            const items = readItems();
+            if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
+                setMessage("Add a product name and valid amount for each item.", "error");
+                return;
+            }
+            const total = items.reduce((sum, item) => sum + item.amount, 0);
+            const paid = Number(document.querySelector("#paid-amount").value) || 0;
+            if (paid > total) {
+                setMessage("Paid amount cannot be greater than the total.", "error");
+                return;
+            }
+            const button = document.querySelector("#save-button");
+            button.disabled = true;
+            button.textContent = "Saving…";
+            try {
+                const result = await api("/api/bills", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        billNo: document.querySelector("#bill-number").value.trim(),
+                        billDate: document.querySelector("#bill-date").value,
+                        dueDate: document.querySelector("#due-date").value || null,
+                        customerId: customerSelect.value || null,
+                        customerName: document.querySelector("#customer-name").value.trim(),
+                        customerMobile: document.querySelector("#customer-mobile").value.trim() || null,
+                        customerAddress: document.querySelector("#customer-address").value.trim() || null,
+                        paid,
+                        items,
+                    }),
+                });
+                setMessage(`Bill ${result.billNo} saved successfully.`, "success");
+                resetForm();
+                setMessage(`Bill ${result.billNo} saved successfully.`, "success");
+                await Promise.all([loadDashboard(), loadLookups()]);
+                window.setTimeout(() => setNavigation("dashboard"), 650);
+            } catch (error) {
+                setMessage(error.message, "error");
+            } finally {
+                button.disabled = false;
+                button.innerHTML = "Save bill &amp; customer";
+            }
+        });
+
+        const today = new Date();
+        document.querySelector("#today-label").textContent = new Intl.DateTimeFormat("en-IN", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        }).format(today);
+        resetForm();
+        addItem();
+        loadDashboard();
+        loadLookups().catch((error) => setMessage(`Could not load customers and products: ${error.message}`, "error"));
     </script>
 </body>
 
