@@ -6,5 +6,15 @@
     "assets": {
         "directory": "./public"
     },
-    "vars": { "SHOP_NAME": "Demo Mobile Shop" }
+    "vars": {
+        "SHOP_NAME": "Demo Mobile Shop"
+    },
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "bill-pwa-db",
+            "database_id": "0776ea8d-306a-4ea7-8f16-b3ec69dd3e5f",
+            "remote": false
+        }
+    ]
 }
