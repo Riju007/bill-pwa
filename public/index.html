@@ -13,16 +13,16 @@
     <button id="test-btn">Click Me</button>
     <script>
         const btn = document.querySelector("#test-btn")
-        btn.addEventListener("click", () => {
-            const headingContent = document.querySelector("#time")
-            const content = new Date().toLocaleString(
-                "en-IN",
-                {
-                    "timeZone": "Asia/Kolkata",
-                    "timeZoneName": "short"
-                }
-            );
-            headingContent.textContent = "Current Time is: " + content
+        btn.addEventListener("click", async () => {
+            const output = document.querySelector("#time")
+            try {
+                const res = await fetch("/api/time")
+                if (!res.ok) throw new Error("Server returned " + res.status)
+                const data = await res.json()
+                output.textContent = "Server time: " + data.ist
+            } catch (err) {
+                output.textContent = "Could not get time: " + err.message
+            }
         })
     </script>
 </body>
