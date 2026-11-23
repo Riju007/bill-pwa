@@ -1,6 +1,11 @@
 // src/index.ts
+interface Env {
+    SHOP_NAME: string;
+    DEMO_SECRET?: string;
+}
+
 export default {
-    async fetch(request: Request): Promise<Response> {
+    async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
 
         if (request.method === "GET" && url.pathname === "/api/health") {
@@ -14,6 +19,13 @@ export default {
                 timeZoneName: "short",
             });
             return Response.json({ utc: now.toISOString(), ist });
+        }
+
+        if (request.method === "GET" && url.pathname === "/api/config") {
+            return Response.json({
+                shopName: env.SHOP_NAME,
+                secretConfigured: Boolean(env.DEMO_SECRET),
+            });
         }
 
         return Response.json({ error: "Not found" }, { status: 404 });
