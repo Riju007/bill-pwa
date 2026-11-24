@@ -132,6 +132,10 @@ function json(response, value, status = 200) {
 
 const server = createServer(async (request, response) => {
     const url = new URL(request.url, "http://127.0.0.1:4173");
+    if (url.pathname === "/api/auth/session") {
+        json(response, { authenticated: true, configured: false });
+        return;
+    }
     if (url.pathname === "/api/dashboard") {
         json(response, {
             summary: { billCount: 2, totalSales: 49500, outstanding: 39000 },

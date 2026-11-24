@@ -27,3 +27,7 @@ npm test
 ```
 
 `npm test` runs Worker API validation tests and Playwright browser tests for the UI, PWA icons, print styling, and draft/saved bill PDF downloads. The browser suite uses a local fixture server; it does not change the D1 database.
+
+## Login setup
+
+Login is enabled when these three secrets are set in `.dev.vars` locally and as Worker secrets in production: `LOGIN_USERNAME`, `LOGIN_PASSWORD`, and `LOGIN_SESSION_SECRET`. The username value may be an email address. Generate a long random session secret; do not commit real values. The provided `.dev.vars` values are local placeholders only.

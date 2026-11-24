@@ -1,3 +1,5 @@
+import { sessionReady } from "/js/auth.js";
+
 const pages = ["dashboard", "billing", "bills", "customers", "products"];
 const pageContent = document.querySelector("#page-content");
 
@@ -18,7 +20,20 @@ async function loadWorkspace() {
     await import("/js/app.js");
 }
 
-loadWorkspace().catch((error) => {
+function loadWorkspaceOnce() {
+    if (pageContent.dataset.loaded) return;
+    pageContent.dataset.loaded = "true";
+    loadWorkspace().catch(showWorkspaceError);
+}
+
+async function startWorkspace() {
+    await sessionReady;
+    if (!document.querySelector(".app").hidden) loadWorkspaceOnce();
+}
+
+document.addEventListener("authenticated", loadWorkspaceOnce);
+
+function showWorkspaceError(error) {
     console.error("Could not load the billing workspace.", error);
     if (!pageContent) return;
 
@@ -27,4 +42,6 @@ loadWorkspace().catch((error) => {
     message.setAttribute("role", "alert");
     message.textContent = "The workspace could not be loaded. Refresh the page to try again.";
     pageContent.replaceChildren(message);
-});
+}
+
+startWorkspace().catch(showWorkspaceError);

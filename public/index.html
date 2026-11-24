@@ -20,7 +20,20 @@
 </head>
 
 <body>
-    <div class="app">
+    <section class="login-screen" id="login-screen" aria-labelledby="login-title" hidden>
+        <form class="login-card" id="login-form">
+            <img src="/icons/pb-ledger.svg" alt="" class="login-logo">
+            <h1 id="login-title">Welcome to PB Ledger</h1>
+            <p>Log in to access the billing workspace.</p>
+            <label for="login-username">Username or email</label>
+            <input id="login-username" name="username" type="text" autocomplete="username" required>
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+            <p id="login-message" class="login-message" role="alert" aria-live="polite"></p>
+            <button class="button primary" type="submit">Log in</button>
+        </form>
+    </section>
+    <div class="app" hidden>
         <aside class="sidebar" id="app-sidebar" aria-label="Main navigation">
             <div class="brand">
                 <img src="/icons/pb-ledger.svg" alt="">
@@ -74,7 +87,15 @@
                         <i class="bi bi-moon" aria-hidden="true"></i>
                         <span class="theme-toggle-label">Dark theme</span>
                     </button>
-                    <span class="avatar" aria-label="PB Ledger account">PB</span>
+                    <div class="account-menu">
+                        <button class="avatar" id="account-menu-toggle" type="button" aria-label="Open account menu" aria-expanded="false" aria-controls="account-menu">PB</button>
+                        <div class="account-menu-panel" id="account-menu" hidden>
+                            <p class="account-menu-name">Pabitra Betal</p>
+                            <p class="account-menu-location">Arambagh</p>
+                            <button class="account-menu-action" id="view-account" type="button"><i class="bi bi-person" aria-hidden="true"></i> View account</button>
+                            <button class="account-menu-action danger" id="logout-button" type="button"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</button>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -92,7 +113,7 @@
         </main>
     </div>
 
-    <nav class="mobile-nav" aria-label="Main navigation">
+    <nav class="mobile-nav" aria-label="Main navigation" hidden>
         <button class="nav-button active" type="button" data-page="dashboard">
             <i class="nav-icon bi bi-grid-1x2-fill" aria-hidden="true"></i>
             Home
@@ -130,6 +151,26 @@
         </div>
         <p class="bill-output-feedback" id="preview-feedback" role="status" aria-live="polite"></p>
         <div class="preview-content" id="preview-content"></div>
+    </dialog>
+
+    <dialog id="account-dialog" aria-labelledby="account-dialog-title">
+        <div class="dialog-head">
+            <h2 id="account-dialog-title">Account</h2>
+            <button class="button ghost" type="button" data-close-dialog="account-dialog" aria-label="Close account">Close</button>
+        </div>
+        <div class="account-profile ps-2">
+            <div class="profile-photo" aria-label="Pabitra Betal profile photo">PB</div>
+            <div>
+                <h3>Pabitra Betal</h3>
+                <p>PB Ledger owner</p>
+            </div>
+            <dl class="profile-details">
+                <div><dt>Name</dt><dd>Pabitra Betal</dd></div>
+                <div><dt>Location</dt><dd>Arambagh, West Bengal</dd></div>
+                <div><dt>Email</dt><dd>Not provided</dd></div>
+                <div><dt>Phone</dt><dd>Not provided</dd></div>
+            </dl>
+        </div>
     </dialog>
 
     <dialog id="bill-detail-dialog" aria-labelledby="bill-detail-title">
@@ -257,6 +298,7 @@
     <script src="/vendor/jspdf.umd.min.js"></script>
     <script src="/vendor/jspdf.plugin.autotable.min.js"></script>
     <script src="/bill-pdf.js"></script>
+    <script type="module" src="/js/auth.js"></script>
     <script type="module" src="/js/app-loader.js"></script>
 
 </body>

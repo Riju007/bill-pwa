@@ -36,6 +36,36 @@ let confirmResolver = null;
 const themeToggle = document.querySelector("#theme-toggle");
 const sidebar = document.querySelector("#app-sidebar");
 const sidebarToggle = document.querySelector("#sidebar-toggle");
+const accountMenuToggle = document.querySelector("#account-menu-toggle");
+const accountMenu = document.querySelector("#account-menu");
+
+function closeAccountMenu() {
+    accountMenu.hidden = true;
+    accountMenuToggle.setAttribute("aria-expanded", "false");
+}
+
+accountMenuToggle.addEventListener("click", () => {
+    const opening = accountMenu.hidden;
+    accountMenu.hidden = !opening;
+    accountMenuToggle.setAttribute("aria-expanded", String(opening));
+});
+
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".account-menu")) closeAccountMenu();
+});
+
+document.querySelector("#view-account").addEventListener("click", () => {
+    closeAccountMenu();
+    document.querySelector("#account-dialog").showModal();
+});
+
+document.querySelector("#logout-button").addEventListener("click", async () => {
+    try {
+        await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+        window.location.reload();
+    }
+});
 
 function setTheme(theme, persist = false) {
     const dark = theme === "dark";

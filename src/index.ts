@@ -1,4 +1,5 @@
 import { json } from "./http";
+import { handleAuth, requireAuthentication } from "./routes/auth";
 import { handleBills } from "./routes/bills";
 import { handleCustomers } from "./routes/customers";
 import { handleDashboard } from "./routes/dashboard";
@@ -21,6 +22,12 @@ export default {
             });
             return json({ utc: now.toISOString(), ist });
         }
+
+        const authResponse = await handleAuth(request, env);
+        if (authResponse) return authResponse;
+
+        const authenticationError = await requireAuthentication(request, env);
+        if (authenticationError) return authenticationError;
 
         for (const handler of [handleDashboard, handleBills, handleCustomers, handleItems, handleProducts]) {
             const response = await handler(request, env);

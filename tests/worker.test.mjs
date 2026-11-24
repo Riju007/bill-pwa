@@ -11,11 +11,43 @@ const env = {
     },
 };
 
+const loginEnv = {
+    ...env,
+    LOGIN_USERNAME: "owner@example.test",
+    LOGIN_PASSWORD: "test-password",
+    LOGIN_SESSION_SECRET: "test-session-secret-that-is-long-enough",
+};
+
 test("health endpoint returns an OK status", async () => {
     const response = await worker.fetch(new Request("https://billwise.test/api/health"), env);
 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { status: "ok" });
+});
+
+test("login protects the API and creates a session for valid credentials", async () => {
+    const denied = await worker.fetch(new Request("https://billwise.test/api/dashboard"), loginEnv);
+    assert.equal(denied.status, 401);
+
+    const invalidLogin = await worker.fetch(new Request("https://billwise.test/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "owner@example.test", password: "wrong" }),
+    }), loginEnv);
+    assert.equal(invalidLogin.status, 401);
+
+    const login = await worker.fetch(new Request("https://billwise.test/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "owner@example.test", password: "test-password" }),
+    }), loginEnv);
+    assert.equal(login.status, 200);
+    assert.match(login.headers.get("set-cookie"), /HttpOnly/);
+
+    const session = await worker.fetch(new Request("https://billwise.test/api/auth/session", {
+        headers: { cookie: login.headers.get("set-cookie").split(";")[0] },
+    }), loginEnv);
+    assert.deepEqual(await session.json(), { authenticated: true, configured: true });
 });
 
 test("bill creation rejects an invalid date before accessing D1", async () => {
