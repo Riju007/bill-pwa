@@ -10,6 +10,7 @@ const customerSelect = document.querySelector("#customer-select");
 const money = (value) => currency.format(Number(value) || 0);
 let customers = [];
 let products = [];
+let productCodes = [];
 let addedItems = [];
 let customerSearchTimer;
 let productSearchTimer;
@@ -30,7 +31,7 @@ function setTheme(theme, persist = false) {
     themeToggle.innerHTML = dark
         ? '<i class="bi bi-sun" aria-hidden="true"></i><span class="theme-toggle-label">Light theme</span>'
         : '<i class="bi bi-moon" aria-hidden="true"></i><span class="theme-toggle-label">Dark theme</span>';
-    document.querySelector('meta[name="theme-color"]').content = dark ? "#09120d" : "#f5f8f6";
+    document.querySelector('meta[name="theme-color"]').content = dark ? "#08090b" : "#f5f8f6";
     if (persist) localStorage.setItem("billwise-theme", dark ? "dark" : "light");
 }
 
@@ -73,6 +74,30 @@ function setMessage(text, kind = "") {
     message.textContent = text;
     message.className = `form-message${kind ? ` ${kind}` : ""}`;
     message.setAttribute("role", kind === "error" ? "alert" : "status");
+}
+
+function showToast(text, kind = "success") {
+    if (!text) return;
+    const region = document.querySelector("#toast-region");
+    const toast = document.createElement("div");
+    toast.className = `app-toast${kind ? ` ${kind}` : ""}`;
+    toast.setAttribute("role", kind === "error" ? "alert" : "status");
+
+    const message = document.createElement("span");
+    message.textContent = text;
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.className = "toast-dismiss";
+    dismiss.setAttribute("aria-label", "Dismiss notification");
+    dismiss.textContent = "×";
+    toast.append(message, dismiss);
+    region.append(toast);
+
+    const timeout = window.setTimeout(() => toast.remove(), 5000);
+    dismiss.addEventListener("click", () => {
+        window.clearTimeout(timeout);
+        toast.remove();
+    });
 }
 
 function fieldIsValid(field) {
@@ -176,6 +201,7 @@ function setOperationFeedback(selector, text, kind = "") {
     target.textContent = text;
     target.className = `operation-feedback${kind ? ` ${kind}` : ""}`;
     target.setAttribute("role", kind === "error" ? "alert" : "status");
+    showToast(text, kind || "success");
 }
 
 enableLiveValidation(form);
@@ -205,6 +231,7 @@ async function saveDirectoryEntry(event, options) {
         });
     } catch (error) {
         status.textContent = error.message;
+        showToast(error.message, "error");
         button.disabled = false;
         button.textContent = buttonText;
         return;
@@ -218,7 +245,7 @@ async function saveDirectoryEntry(event, options) {
     let refreshError = "";
     try {
         await loadLookups();
-        await loadDashboardLists();
+        await loadDashboard();
     } catch (error) {
         refreshError = error.message;
     }
@@ -259,6 +286,7 @@ function itemInput(field, placeholder, type = "text") {
     input.className = "form-control";
     input.type = type;
     input.dataset.field = field;
+    if (field === "productCode") input.setAttribute("list", "saved-product-codes");
     input.placeholder = placeholder;
     input.setAttribute("aria-label", placeholder);
     input.required = true;
@@ -360,12 +388,14 @@ function addItem(values = {}, editingIndex = null) {
             imei: row.querySelector('[data-field="imei"]').value.trim(),
             amount: Number(row.querySelector('[data-field="amount"]').value),
         };
+        const action = editingIndex === null ? "added to" : "updated in";
         if (editingIndex === null) addedItems.push(item);
         else addedItems.splice(editingIndex, 1, item);
         row.remove();
         setMessage("");
         renderAddedItems();
         updateTotals();
+        showToast(`${item.productName} ${action} the bill.`);
     });
     const cancel = document.createElement("button");
     cancel.className = "draft-action reject";
@@ -423,9 +453,10 @@ function renderAddedItems() {
                 name: "delete",
                 label: `Delete ${item.productName}`,
                 onClick: () => {
-                    addedItems.splice(index, 1);
+                    const [removedItem] = addedItems.splice(index, 1);
                     renderAddedItems();
                     updateTotals();
+                    showToast(`${removedItem.productName} removed from the bill.`);
                 },
             },
         ]);
@@ -733,7 +764,7 @@ async function deleteDirectoryEntry(type, entry) {
         });
         await (isCustomer ? loadCustomerDirectory(document.querySelector(search).value.trim()) : loadProductDirectory(document.querySelector(search).value.trim()));
         await loadLookups();
-        await loadDashboardLists();
+        await loadDashboard();
         setOperationFeedback(feedback, `${type[0].toUpperCase()}${type.slice(1)} deleted.`, "success");
     } catch (error) {
         setOperationFeedback(feedback, error.message, "error");
@@ -796,13 +827,14 @@ function renderBillRows(target, bills, compact = false) {
 
 async function loadDashboard() {
     const target = document.querySelector("#recent-bills");
-    loadDashboardLists();
+    const customerBilling = document.querySelector("#customer-billing-list");
     try {
         const data = await api("/api/dashboard");
         document.querySelector("#stat-sales").textContent = money(data.summary.totalSales);
         document.querySelector("#stat-due").textContent = money(data.summary.outstanding);
         document.querySelector("#stat-count").textContent = String(data.summary.billCount || 0);
         renderBillRows(target, data.recentBills || [], true);
+        renderCustomerBilling(customerBilling, data.customerBilling || []);
     } catch (error) {
         target.replaceChildren();
         const row = document.createElement("tr");
@@ -812,6 +844,91 @@ async function loadDashboard() {
         cell.textContent = `Could not load billing data: ${error.message}`;
         row.append(cell);
         target.append(row);
+        renderCustomerBilling(customerBilling, [], error.message);
+    }
+}
+
+function renderCustomerBilling(target, entries, error = "") {
+    target.replaceChildren();
+    if (error || !entries.length) {
+        const status = document.createElement("p");
+        status.className = "latest-empty";
+        status.textContent = error ? `Could not load customer billing: ${error}` : "No customer bills saved yet.";
+        target.append(status);
+        return;
+    }
+
+    for (const customer of entries) {
+        const card = document.createElement("details");
+        card.className = "customer-billing-card";
+        const summary = document.createElement("summary");
+        const heading = document.createElement("div");
+        heading.className = "customer-billing-heading";
+        const name = document.createElement("strong");
+        name.textContent = customer.customerName;
+        const count = document.createElement("span");
+        count.textContent = `${customer.billCount} ${customer.billCount === 1 ? "bill" : "bills"}`;
+        heading.append(name, count);
+
+        const totals = document.createElement("div");
+        totals.className = "customer-billing-totals";
+        for (const [label, value, className] of [
+            ["Billed", customer.total, ""],
+            ["Paid", customer.paid, ""],
+            ["Due", customer.due, "due"],
+        ]) {
+            const total = document.createElement("span");
+            if (className) total.className = className;
+            total.append(`${label} `);
+            const amount = document.createElement("strong");
+            amount.textContent = money(value);
+            total.append(amount);
+            totals.append(total);
+        }
+        summary.append(heading, totals);
+        card.append(summary);
+
+        const bills = document.createElement("div");
+        bills.className = "customer-bills";
+        for (const bill of customer.bills) {
+            const billSection = document.createElement("section");
+            billSection.className = "customer-bill";
+            const billHeading = document.createElement("div");
+            billHeading.className = "customer-bill-heading";
+            const billTitle = document.createElement("strong");
+            billTitle.textContent = bill.billNo;
+            const billDate = document.createElement("span");
+            billDate.textContent = bill.billDate || "Date not set";
+            const billTotal = document.createElement("span");
+            billTotal.textContent = `${money(bill.total)} · Due ${money(bill.due)}`;
+            billHeading.append(billTitle, billDate, billTotal);
+            billSection.append(billHeading);
+
+            const items = document.createElement("ul");
+            items.className = "customer-bill-items";
+            for (const item of bill.items) {
+                const itemRow = document.createElement("li");
+                const detail = document.createElement("span");
+                detail.textContent = [
+                    item.productName,
+                    item.productCode,
+                    item.imei ? `IMEI ${item.imei}` : "",
+                ].filter(Boolean).join(" · ");
+                const amount = document.createElement("strong");
+                amount.textContent = money(item.amount);
+                itemRow.append(detail, amount);
+                items.append(itemRow);
+            }
+            if (!bill.items.length) {
+                const empty = document.createElement("li");
+                empty.textContent = "No items recorded for this bill.";
+                items.append(empty);
+            }
+            billSection.append(items);
+            bills.append(billSection);
+        }
+        card.append(bills);
+        target.append(card);
     }
 }
 
@@ -955,16 +1072,29 @@ async function loadProductDirectory(query = "") {
 }
 
 async function loadLookups() {
-    customers = await api("/api/customers");
+    const [customerResult, codeResult] = await Promise.allSettled([
+        api("/api/customers"),
+        api("/api/bills/product-codes"),
+    ]);
+    if (customerResult.status === "rejected") throw customerResult.reason;
+    customers = customerResult.value;
+    if (codeResult.status === "fulfilled") {
+        productCodes = codeResult.value;
+    } else {
+        productCodes = [];
+        showToast(`Saved product code suggestions are unavailable: ${codeResult.reason.message}`, "error");
+    }
+    const suggestions = document.querySelector("#saved-product-codes");
+    suggestions.replaceChildren(...[...new Set(productCodes)].map((code) => {
+        const option = document.createElement("option");
+        option.value = code;
+        return option;
+    }));
     customerSelect.replaceChildren(new Option("Select a customer", ""));
     for (const customer of customers) {
         const detail = customer.mobile ? ` · ${customer.mobile}` : "";
         customerSelect.add(new Option(`${customer.name}${detail}`, String(customer.id)));
     }
-    /*
-    products = await api("/api/products");
-    refreshItemProductOptions();
-    */
 }
 
 function refreshItemProductOptions() {
@@ -1015,6 +1145,7 @@ function resetForm() {
     document.querySelector("#bill-date").value = today;
     document.querySelector("#bill-number").value = makeBillNumber();
     setMessage("");
+    updateTotals();
 }
 
 async function editBill(billId) {
@@ -1035,6 +1166,7 @@ async function editBill(billId) {
         itemRows.replaceChildren();
         addedItems = bill.items.map((item) => ({ ...item }));
         renderAddedItems();
+        updateTotals();
         document.querySelector("#create-title").textContent = `Edit bill ${bill.billNo}`;
         document.querySelector("#save-button").textContent = "Update bill";
         setMessage("");
@@ -1194,8 +1326,10 @@ document.querySelector("#download-preview").addEventListener("click", async (eve
     feedback.textContent = "";
     try {
         await window.BillPdf.download(previewBillData);
+        showToast("Bill PDF downloaded.");
     } catch (error) {
         feedback.textContent = `Could not create PDF: ${error.message}`;
+        showToast(error.message, "error");
     } finally {
         button.disabled = false;
     }
@@ -1207,8 +1341,10 @@ document.querySelector("#download-saved-bill").addEventListener("click", async (
     feedback.textContent = "";
     try {
         await window.BillPdf.download(savedBillData);
+        showToast("Bill PDF downloaded.");
     } catch (error) {
         feedback.textContent = `Could not create PDF: ${error.message}`;
+        showToast(error.message, "error");
     } finally {
         button.disabled = !savedBillData;
     }
@@ -1235,13 +1371,13 @@ document.querySelector("#product-search").addEventListener("input", (event) => {
         250,
     );
 });
-document.querySelector("#new-customer-button").addEventListener("click", () => {
-    openDirectoryForm("customer");
-});
 document.querySelector("#new-product-button").addEventListener("click", () => {
     openDirectoryForm("product");
 });
 */
+document.querySelector("#new-customer-button").addEventListener("click", () => {
+    openDirectoryForm("customer");
+});
 document.querySelectorAll("[data-close-dialog]").forEach((button) => {
     button.addEventListener("click", () => {
         document.querySelector(`#${button.dataset.closeDialog}`).close();
@@ -1350,6 +1486,7 @@ form.addEventListener("submit", async (event) => {
         }
     } catch (error) {
         setMessage(error.message, "error");
+        showToast(error.message, "error");
     } finally {
         button.disabled = false;
         button.textContent = editingBillId === null ? "Save bill" : "Update bill";

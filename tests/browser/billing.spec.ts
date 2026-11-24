@@ -44,6 +44,13 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
     const toggledButtonColor = await primaryButton.evaluate((button) => getComputedStyle(button).backgroundColor);
     expect(toggledTheme).not.toBe(initialTheme);
     expect(toggledButtonColor).toBe(initialButtonColor);
+    expect(await page.locator("body").evaluate((body) => getComputedStyle(body).backgroundColor)).toBe("rgb(8, 9, 11)");
+    const themeIconAlignment = await page.locator("#theme-toggle .bi").evaluate((icon) => {
+        const iconRect = icon.getBoundingClientRect();
+        const buttonRect = icon.parentElement!.getBoundingClientRect();
+        return Math.abs(iconRect.top + iconRect.height / 2 - (buttonRect.top + buttonRect.height / 2));
+    });
+    expect(themeIconAlignment).toBeLessThan(2);
     expect(manifest.icons.some((icon: { src: string }) => icon.src === "/icons/icon-192.png")).toBeTruthy();
     expect((await page.request.get("/icons/icon-192.png")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap.min.css")).ok()).toBeTruthy();
@@ -88,6 +95,14 @@ test("adds, edits, and deletes manually entered bill items", async ({ page }) =>
     await fields[1].fill("MAN-001");
     await fields[2].fill("123456789012345");
     await fields[3].fill("1250");
+    const actionLayout = await page.locator(".item-row").evaluate((row) => {
+        const actions = row.querySelector(".draft-actions")!.getBoundingClientRect();
+        const itemFields = [...row.querySelectorAll(".item-field")];
+        const fieldsBottom = Math.max(...itemFields.map((field) => field.getBoundingClientRect().bottom));
+        return { actionsTop: actions.top, actionsRight: actions.right, fieldsBottom, rowRight: row.getBoundingClientRect().right };
+    });
+    expect(actionLayout.actionsTop).toBeGreaterThanOrEqual(actionLayout.fieldsBottom);
+    expect(actionLayout.actionsRight).toBeLessThanOrEqual(actionLayout.rowRight);
     await page.getByRole("button", { name: "Save item" }).click();
 
     let row = page.locator("#added-items-body tr").first();
@@ -168,4 +183,57 @@ test("downloads saved bills with multiple pages", async ({ page }) => {
     const pdf = await readFile(path!);
     const pageCount = (pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
     expect(pageCount).toBeGreaterThan(1);
+});
+
+test("creates a customer from the directory and shows a confirmation", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.sidebar [data-page="customers"]').click();
+    await page.locator("#new-customer-button").click();
+    await expect(page.locator("#customer-dialog")).toBeVisible();
+    await page.locator("#new-customer-name").fill("New Customer Test");
+    await page.locator("#new-customer-mobile").fill("9000000000");
+    await page.locator("#save-customer-button").click();
+
+    await expect(page.locator("#customer-dialog")).not.toBeVisible();
+    await expect(page.locator("#customer-list")).toContainText("New Customer Test");
+    await expect(page.locator("#toast-region .app-toast")).toContainText("Customer saved successfully.");
+    await page.locator('.sidebar [data-page="create"]').click();
+    await expect(page.locator("#customer-select")).toContainText("New Customer Test");
+});
+
+test("shows customer totals and every bill item across multiple bills", async ({ page }) => {
+    await page.goto("/");
+    const customerCard = page.locator(".customer-billing-card");
+    await expect(customerCard).toContainText("2 bills");
+    await expect(customerCard).toContainText("₹49,500.00");
+    await expect(customerCard).toContainText("₹10,500.00");
+    await expect(customerCard).toContainText("₹39,000.00");
+    await customerCard.locator("summary").click();
+    await expect(customerCard).toContainText("INV-41");
+    await expect(customerCard).toContainText("Second Phone");
+    await expect(customerCard).toContainText("222222222222222");
+    await expect(customerCard).toContainText("Sample Phone 40");
+});
+
+test("refreshes the bill summary when editing a saved bill", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.sidebar [data-page="bills"]').click();
+    await page.getByRole("button", { name: "Edit bill INV-40" }).click();
+
+    await expect(page.locator("#create-title")).toHaveText("Edit bill INV-40");
+    await expect(page.locator("#item-count")).toHaveText("40");
+    await expect(page.locator("#bill-total")).toHaveText("₹48,000.00");
+    await expect(page.locator("#paid-amount")).toHaveValue("10000");
+    await expect(page.locator("#bill-due")).toHaveText("₹38,000.00");
+});
+
+test("offers saved product codes without restricting manual entry", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Create a bill" }).click();
+    await page.locator("#add-item").click();
+    const productCode = page.locator('#item-rows input[data-field="productCode"]');
+    await expect(productCode).toHaveAttribute("list", "saved-product-codes");
+    await expect(page.locator("#saved-product-codes option")).toHaveCount(2);
+    await productCode.fill("CUSTOM-CODE");
+    await expect(productCode).toHaveValue("CUSTOM-CODE");
 });

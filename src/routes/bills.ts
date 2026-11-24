@@ -3,6 +3,24 @@ import { parseBill } from "../validation";
 
 export async function handleBills(request: Request, env: Env): Promise<Response | null> {
     const url = new URL(request.url);
+    if (url.pathname === "/api/bills/product-codes") {
+        if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+        const { results } = await env.DB.prepare(
+            `SELECT code
+            FROM (
+                SELECT code
+                FROM products
+                WHERE code IS NOT NULL AND TRIM(code) <> ''
+                UNION
+                SELECT product_code AS code
+                FROM bill_items
+                WHERE product_code IS NOT NULL AND TRIM(product_code) <> ''
+            )
+            ORDER BY code COLLATE NOCASE`,
+        ).all();
+        return json(results.map((row) => row.code));
+    }
+
     const billDetailMatch = /^\/api\/bills\/(\d+)$/.exec(url.pathname);
     if (billDetailMatch) {
         const billId = Number(billDetailMatch[1]);
