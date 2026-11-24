@@ -1,0 +1,39 @@
+<section class="page" id="page-products" aria-labelledby="products-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Catalog</p>
+                            <h1 id="products-title">Products</h1>
+                            <p class="subtitle">Browse saved products or search by product name or code.</p>
+                        </div>
+                        <div class="list-toolbar directory-toolbar">
+                            <label class="search-box">
+                                <input class="form-control" id="product-search" type="search" placeholder="Search products…" aria-label="Search products">
+                            </label>
+                            <button class="button primary btn" id="new-product-button" type="button">
+                                <i class="bi bi-box-seam" aria-hidden="true"></i>
+                                New product
+                            </button>
+                        </div>
+                    </div>
+                    <p class="operation-feedback" id="product-feedback" role="status" aria-live="polite"></p>
+                    <section class="panel" aria-label="Product list">
+                        <div class="panel-header">
+                            <h2>Product catalog</h2>
+                            <span class="field-hint" id="product-count" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Product code</th>
+                                        <th>Product name</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="product-list">
+                                    <tr><td class="empty-state loading" colspan="3">Loading products…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>

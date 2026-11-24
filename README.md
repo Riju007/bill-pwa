@@ -2,6 +2,12 @@
 
 A mobile-friendly billing workspace built with a static HTML UI and a Cloudflare Worker API.
 
+## Structure
+
+`public/index.html` contains the shared workspace layout. Its dashboard, billing, bills, customers, and products views live in `public/pages/`; `public/css/app.css` and `public/js/app.js` hold the UI styling and behavior. The page loader fetches the views before initializing the app.
+
+`src/index.ts` is the Worker entry point. Shared HTTP helpers and input validation are in `src/http.ts` and `src/validation.ts`, while API handlers are grouped under `src/routes/`.
+
 ## Run locally
 
 ```powershell

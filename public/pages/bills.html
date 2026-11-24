@@ -1,0 +1,37 @@
+<section class="page" id="page-bills" aria-labelledby="bills-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Records</p>
+                            <h1 id="bills-title">All bills</h1>
+                            <p class="subtitle">Search bills by number, customer, or mobile.</p>
+                        </div>
+                        <div class="list-toolbar">
+                            <label class="search-box">
+                                <span class="field-hint" hidden>Search bills</span>
+                                <input class="form-control" id="bill-search" type="search" placeholder="Search bills…" aria-label="Search bills">
+                            </label>
+                        </div>
+                    </div>
+                    <p class="operation-feedback" id="bill-feedback" role="status" aria-live="polite"></p>
+                    <section class="panel" aria-label="Bills list">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bill number</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Paid</th>
+                                        <th>Due</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-bills">
+                                    <tr><td class="empty-state loading" colspan="8">Loading bills…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>

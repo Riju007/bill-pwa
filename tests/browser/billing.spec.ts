@@ -1,12 +1,20 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
-test("serves local framework and install icons", async ({ page }) => {
+test("loads the shared layout, page templates, local framework, and install icons", async ({ page }) => {
     await page.goto("/");
 
     const manifestResponse = await page.request.get("/manifest.webmanifest");
     expect(manifestResponse.ok()).toBeTruthy();
     const manifest = await manifestResponse.json();
+    expect((await page.request.get("/css/app.css")).ok()).toBeTruthy();
+    for (const pageName of ["dashboard", "billing", "bills", "customers", "products"]) {
+        expect((await page.request.get(`/pages/${pageName}.html`)).ok()).toBeTruthy();
+    }
+    await expect(page.locator("#page-dashboard")).toBeAttached();
+    await expect(page.locator("#page-products")).toBeAttached();
+    await page.locator('.sidebar [data-page="products"]').click();
+    await expect(page.locator("#page-products")).toBeVisible();
     expect(manifest.icons.some((icon: { src: string }) => icon.src === "/icons/icon-192.png")).toBeTruthy();
     expect((await page.request.get("/icons/icon-192.png")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap.min.css")).ok()).toBeTruthy();

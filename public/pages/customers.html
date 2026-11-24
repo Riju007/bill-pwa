@@ -1,0 +1,41 @@
+<section class="page" id="page-customers" aria-labelledby="customers-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Directory</p>
+                            <h1 id="customers-title">Customers</h1>
+                            <p class="subtitle">Browse saved customer details or search by name, code, or phone.</p>
+                        </div>
+                        <div class="list-toolbar directory-toolbar">
+                            <label class="search-box">
+                                <input class="form-control" id="customer-search" type="search" placeholder="Search customers…" aria-label="Search customers">
+                            </label>
+                            <button class="button primary btn" id="new-customer-button" type="button">
+                                <i class="bi bi-person-plus" aria-hidden="true"></i>
+                                New customer
+                            </button>
+                        </div>
+                    </div>
+                    <p class="operation-feedback" id="customer-feedback" role="status" aria-live="polite"></p>
+                    <section class="panel" aria-label="Customer list">
+                        <div class="panel-header">
+                            <h2>Customer directory</h2>
+                            <span class="field-hint" id="customer-count" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Customer code</th>
+                                        <th>Name</th>
+                                        <th>Mobile</th>
+                                        <th>Address</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customer-list">
+                                    <tr><td class="empty-state loading" colspan="5">Loading customers…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </section>

@@ -1,0 +1,125 @@
+<section class="page" id="page-create" aria-labelledby="create-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Billing</p>
+                            <h1 id="create-title">Create a new bill</h1>
+                            <p class="subtitle">Add the bill details, customer, and products below.</p>
+                        </div>
+                    </div>
+
+                    <form id="bill-form" novalidate>
+                        <div class="form-layout">
+                            <div class="form-main">
+                                <section class="form-card" aria-labelledby="bill-details-title">
+                                    <div class="section-heading">
+                                        <span class="section-number">01</span>
+                                        <div>
+                                            <h2 id="bill-details-title">Bill details</h2>
+                                            <p>Set the bill number and important dates.</p>
+                                        </div>
+                                    </div>
+                                    <div class="field-grid">
+                                        <div class="field">
+                                            <label for="bill-number">Bill number <span class="required-mark" aria-hidden="true">*</span></label>
+                                            <input class="form-control" id="bill-number" name="billNo" maxlength="50" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="bill-date">Bill date <span class="required-mark" aria-hidden="true">*</span></label>
+                                            <input class="form-control" id="bill-date" name="billDate" type="date" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="due-date">Payment due date <span class="field-hint">(optional)</span></label>
+                                            <input class="form-control" id="due-date" name="dueDate" type="date">
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="form-card" aria-labelledby="customer-title">
+                                    <div class="section-heading">
+                                        <span class="section-number">02</span>
+                                        <div>
+                                            <h2 id="customer-title">Customer</h2>
+                                            <p>Choose a customer from the saved directory.</p>
+                                        </div>
+                                    </div>
+                                    <div class="field-grid">
+                                        <div class="field full">
+                                            <label for="customer-select">Customer <span class="required-mark" aria-hidden="true">*</span></label>
+                                            <select class="form-select" id="customer-select" name="customerId" required>
+                                                <option value="">Select a customer</option>
+                                            </select>
+                                        </div>
+                                        <div class="field full" id="selected-customer-details" hidden>
+                                            <p class="field-hint" id="selected-customer-summary"></p>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="form-card" aria-labelledby="items-title">
+                                    <div class="section-heading">
+                                        <span class="section-number">03</span>
+                                        <div>
+                                            <h2 id="items-title">Add Items</h2>
+                                            <p>Add each item and its amount. Your total updates automatically.</p>
+                                        </div>
+                                    </div>
+                                    <div class="items-head">
+                                        <span class="items-head-title">0 items</span>
+                                        <button class="table-add-item" id="add-item" type="button" title="Add item" aria-label="Add item">
+                                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                                            Add item
+                                        </button>
+                                    </div>
+                                    <div id="item-rows"></div>
+                                    <div class="added-items-wrap">
+                                        <div class="added-items-heading">Added items</div>
+                                        <div class="table-wrap">
+                                            <table class="added-items-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Product</th>
+                                                        <th>Code</th>
+                                                        <th>IMEI / serial</th>
+                                                        <th>Amount</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="added-items-body">
+                                                    <tr><td colspan="5" class="empty-state">No items added yet.</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <aside class="summary-card" aria-labelledby="summary-title">
+                                <h2 id="summary-title">Bill summary</h2>
+                                <p>Totals update as you add products.</p>
+                                <div class="summary-line">
+                                    <span>Items</span>
+                                    <strong id="item-count">0</strong>
+                                </div>
+                                <div class="summary-line total">
+                                    <span>Total</span>
+                                    <strong id="bill-total">₹0.00</strong>
+                                </div>
+                                <div class="summary-paid">
+                                    <label for="paid-amount">Paid</label>
+                                    <input class="form-control" id="paid-amount" name="paid" type="number" min="0" step="0.01" value="0" inputmode="decimal">
+                                </div>
+                                <div class="summary-line due">
+                                    <span>Due</span>
+                                    <strong id="bill-due">₹0.00</strong>
+                                </div>
+                                <hr class="summary-divider">
+                                <div class="summary-actions">
+                                    <button class="button secondary btn" id="preview-button" type="button">Preview bill</button>
+                                    <button class="button primary btn" id="save-button" type="submit">Save bill</button>
+                                    <button class="button danger" id="clear-button" type="button">Clear form</button>
+                                </div>
+                                <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+                            </aside>
+                        </div>
+                    </form>
+                </section>

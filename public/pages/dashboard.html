@@ -1,0 +1,90 @@
+<section class="page active" id="page-dashboard" aria-labelledby="dashboard-title">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">Your workspace</p>
+                            <h1 id="dashboard-title">Good to see you</h1>
+                            <p class="subtitle">Here is a quick look at your billing activity.</p>
+                        </div>
+                        <button class="button primary btn" type="button" data-go="create">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                            Create new bill
+                        </button>
+                    </div>
+
+                    <div class="stats" aria-live="polite">
+                        <article class="stat-card">
+                            <div>
+                                <div class="stat-top">
+                                    <span class="stat-label">Total billed</span>
+                                    <span class="stat-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
+                                </div>
+                                <p class="stat-value" id="stat-sales">—</p>
+                                <p class="stat-foot">Across all saved bills</p>
+                            </div>
+                        </article>
+                        <article class="stat-card">
+                            <div>
+                                <div class="stat-top">
+                                    <span class="stat-label">Awaiting payment</span>
+                                    <span class="stat-icon amber"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+                                </div>
+                                <p class="stat-value" id="stat-due">—</p>
+                                <p class="stat-foot">Outstanding balance</p>
+                            </div>
+                        </article>
+                        <article class="stat-card">
+                            <div>
+                                <div class="stat-top">
+                                    <span class="stat-label">Bills created</span>
+                                    <span class="stat-icon green"><i class="bi bi-receipt-cutoff" aria-hidden="true"></i></span>
+                                </div>
+                                <p class="stat-value" id="stat-count">—</p>
+                                <p class="stat-foot">All time</p>
+                            </div>
+                        </article>
+                    </div>
+
+                    <section class="panel" aria-labelledby="recent-title">
+                        <div class="panel-header">
+                            <h2 id="recent-title">Recent bills</h2>
+                            <button class="button ghost" type="button" data-go="bills">View all</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Bill number</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Payment</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-bills">
+                                    <tr><td class="empty-state loading" colspan="5">Loading your bills…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <div class="dashboard-directories">
+                        <section class="panel" aria-labelledby="latest-customers-title">
+                            <div class="panel-header">
+                                <h2 id="latest-customers-title">Latest customers</h2>
+                                <button class="button ghost" type="button" data-go="customers">View all</button>
+                            </div>
+                            <div class="latest-list" id="latest-customers" aria-live="polite">
+                                <p class="latest-empty">Loading customers…</p>
+                            </div>
+                        </section>
+                        <section class="panel" aria-labelledby="latest-products-title">
+                            <div class="panel-header">
+                                <h2 id="latest-products-title">Latest products</h2>
+                                <button class="button ghost" type="button" data-go="products">View all</button>
+                            </div>
+                            <div class="latest-list" id="latest-products" aria-live="polite">
+                                <p class="latest-empty">Loading products…</p>
+                            </div>
+                        </section>
+                    </div>
+                </section>
