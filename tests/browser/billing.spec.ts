@@ -93,24 +93,49 @@ test("adds, edits, and deletes manually entered bill items", async ({ page }) =>
     for (const field of fields) await expect(field).toHaveAttribute("required", "");
     await fields[0].fill("Manual Phone");
     await fields[1].fill("MAN-001");
-    await fields[2].fill("123456789012345");
-    await fields[3].fill("1250");
+    await fields[2].fill("12345678901234A");
+    await expect(fields[2]).toHaveValue("12345678901234");
+    await fields[3].fill("999");
+    const addItemAction = page.locator("#item-rows .draft-action.accept");
+    const cancelItemAction = page.locator("#item-rows .draft-action.reject");
+    await expect(addItemAction).toHaveText("Add item");
+    await expect(cancelItemAction).toHaveText("Cancel");
+    expect(await addItemAction.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe("rgb(20, 122, 85)");
+    expect(await cancelItemAction.evaluate((button) => getComputedStyle(button).backgroundColor)).toBe("rgb(189, 71, 86)");
+    await expect(page.locator("#item-rows .required-mark")).toHaveCount(4);
     const actionLayout = await page.locator(".item-row").evaluate((row) => {
         const actions = row.querySelector(".draft-actions")!.getBoundingClientRect();
         const itemFields = [...row.querySelectorAll(".item-field")];
         const fieldsBottom = Math.max(...itemFields.map((field) => field.getBoundingClientRect().bottom));
-        return { actionsTop: actions.top, actionsRight: actions.right, fieldsBottom, rowRight: row.getBoundingClientRect().right };
+        const buttons = [...row.querySelectorAll(".draft-action")].map((button) => button.getBoundingClientRect());
+        return {
+            actionsTop: actions.top,
+            actionsRight: actions.right,
+            actionsWidth: actions.width,
+            fieldsBottom,
+            rowRight: row.getBoundingClientRect().right,
+            buttonWidths: buttons.map((button) => button.width),
+        };
     });
     expect(actionLayout.actionsTop).toBeGreaterThanOrEqual(actionLayout.fieldsBottom);
     expect(actionLayout.actionsRight).toBeLessThanOrEqual(actionLayout.rowRight);
-    await page.getByRole("button", { name: "Save item" }).click();
+    expect(Math.abs(actionLayout.buttonWidths[0] - actionLayout.buttonWidths[1])).toBeLessThan(1);
+    expect(actionLayout.buttonWidths[0] + actionLayout.buttonWidths[1]).toBeGreaterThan(actionLayout.actionsWidth - 10);
+    await page.locator("#item-rows .draft-action.accept").click();
+    await expect(page.locator('.item-field:has(input[data-field="imei"]) .item-field-error'))
+        .toHaveText("IMEI must be exactly 15 digits (0-9 only).");
+    await expect(page.locator('.item-field:has(input[data-field="amount"]) .item-field-error'))
+        .toHaveText("Amount must be between ₹1,000 and ₹5,00,000.");
+    await fields[2].fill("123456789012345");
+    await fields[3].fill("1250");
+    await page.locator("#item-rows .draft-action.accept").click();
 
     let row = page.locator("#added-items-body tr").first();
     await expect(row.locator("td")).toHaveText(["1", "Manual Phone", "MAN-001", "123456789012345", "₹1,250.00", ""]);
     await row.getByRole("button", { name: "Edit Manual Phone" }).click();
     await expect(page.locator('#item-rows input[data-field="productName"]')).toHaveValue("Manual Phone");
     await page.locator('#item-rows input[data-field="amount"]').fill("1800");
-    await page.getByRole("button", { name: "Save item" }).click();
+    await page.getByRole("button", { name: "Save changes" }).click();
     row = page.locator("#added-items-body tr").first();
     await expect(row.locator("td").nth(4)).toHaveText("₹1,800.00");
     await row.getByRole("button", { name: "Delete Manual Phone" }).click();
@@ -139,7 +164,7 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     await page.locator('.item-row input[data-field="productCode"]').fill("P001");
     await page.locator('.item-row input[data-field="imei"]').fill("123456789012345");
     await page.locator('.item-row input[data-field="amount"]').fill("1250");
-    await page.getByRole("button", { name: "Save item" }).click();
+    await page.locator("#item-rows .draft-action.accept").click();
     await page.getByRole("button", { name: "Preview bill" }).click();
 
     await expect(page.locator("#preview-dialog")).toBeVisible();
@@ -191,6 +216,11 @@ test("creates a customer from the directory and shows a confirmation", async ({ 
     await page.locator("#new-customer-button").click();
     await expect(page.locator("#customer-dialog")).toBeVisible();
     await page.locator("#new-customer-name").fill("New Customer Test");
+    await expect(page.locator("#new-customer-mobile")).toHaveAttribute("required", "");
+    await expect(page.locator("#new-customer-address")).toHaveAttribute("maxlength", "200");
+    await page.locator("#save-customer-button").click();
+    await expect(page.locator("#customer-dialog")).toBeVisible();
+    await expect(page.locator("#new-customer-mobile")).toHaveAttribute("aria-invalid", "true");
     await page.locator("#new-customer-mobile").fill("9000000000");
     await page.locator("#save-customer-button").click();
 
@@ -201,8 +231,35 @@ test("creates a customer from the directory and shows a confirmation", async ({ 
     await expect(page.locator("#customer-select")).toContainText("New Customer Test");
 });
 
+test("customer names open a detail popup with the creation date", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.sidebar [data-page="customers"]').click();
+    await expect(page.locator("#page-customers thead th")).toHaveText([
+        "Name",
+        "Customer code",
+        "Mobile",
+        "Address",
+        "Actions",
+    ]);
+
+    const name = page.locator("#customer-list .customer-name-link");
+    await expect(name).toHaveText("Sample Customer");
+    const address = page.locator("#customer-list .customer-address-cell");
+    await expect(address).toHaveAttribute("title", /Example Road/);
+    await expect(address).toHaveCSS("text-overflow", "ellipsis");
+    await name.click();
+
+    await expect(page.locator("#customer-detail-dialog")).toBeVisible();
+    await expect(page.locator("#customer-detail-content")).toContainText("9876543210");
+    await expect(page.locator("#customer-detail-content")).toContainText("Example Road");
+    await expect(page.locator("#customer-detail-content")).toContainText("Created on");
+    await expect(page.locator("#customer-detail-content")).toContainText("23 Nov 2026");
+});
+
 test("shows customer totals and every bill item across multiple bills", async ({ page }) => {
     await page.goto("/");
+    await expect(page.locator("#recent-bills").locator("..")).toContainText("Due date");
+    await expect(page.locator("#recent-bills")).toContainText("02 Dec 2026");
     const customerCard = page.locator(".customer-billing-card");
     await expect(customerCard).toContainText("2 bills");
     await expect(customerCard).toContainText("₹49,500.00");
@@ -227,13 +284,36 @@ test("refreshes the bill summary when editing a saved bill", async ({ page }) =>
     await expect(page.locator("#bill-due")).toHaveText("₹38,000.00");
 });
 
-test("offers saved product codes without restricting manual entry", async ({ page }) => {
+test("suggests saved product names and codes below their inputs without restricting manual entry", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Create a bill" }).click();
     await page.locator("#add-item").click();
+
+    const productName = page.locator('#item-rows input[data-field="productName"]');
+    await productName.fill("sample");
+    const nameSuggestions = page.locator('.item-field:has(input[data-field="productName"]) .item-suggestions');
+    await expect(nameSuggestions).toBeVisible();
+    await expect(nameSuggestions.getByRole("option", { name: "Sample Phone" })).toBeVisible();
+    const nameInputBounds = await productName.boundingBox();
+    const namePopupBounds = await nameSuggestions.boundingBox();
+    expect(nameInputBounds).not.toBeNull();
+    expect(namePopupBounds).not.toBeNull();
+    expect(namePopupBounds!.y).toBeGreaterThanOrEqual(nameInputBounds!.y + nameInputBounds!.height);
+    expect(Math.abs(namePopupBounds!.x - nameInputBounds!.x)).toBeLessThan(1);
+    await nameSuggestions.getByRole("option", { name: "Sample Phone" }).click();
+    await expect(productName).toHaveValue("Sample Phone");
+
     const productCode = page.locator('#item-rows input[data-field="productCode"]');
-    await expect(productCode).toHaveAttribute("list", "saved-product-codes");
-    await expect(page.locator("#saved-product-codes option")).toHaveCount(2);
+    await productCode.fill("P0");
+    const codeSuggestions = page.locator('.item-field:has(input[data-field="productCode"]) .item-suggestions');
+    await expect(codeSuggestions).toBeVisible();
+    await expect(codeSuggestions.getByRole("option")).toHaveCount(2);
+    const codeInputBounds = await productCode.boundingBox();
+    const codePopupBounds = await codeSuggestions.boundingBox();
+    expect(codeInputBounds).not.toBeNull();
+    expect(codePopupBounds).not.toBeNull();
+    expect(codePopupBounds!.y).toBeGreaterThanOrEqual(codeInputBounds!.y + codeInputBounds!.height);
+    expect(Math.abs(codePopupBounds!.x - codeInputBounds!.x)).toBeLessThan(1);
     await productCode.fill("CUSTOM-CODE");
     await expect(productCode).toHaveValue("CUSTOM-CODE");
 });

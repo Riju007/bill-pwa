@@ -113,6 +113,7 @@ export async function handleDashboard(request: Request, env: Env): Promise<Respo
             ).all(),
             env.DB.prepare(
                 `SELECT b.id, b.bill_no AS billNo, b.bill_date AS billDate,
+                    b.due_date AS dueDate,
                     b.customer_name AS customerName, b.paid,
                     COALESCE(SUM(bi.amount), 0) AS total
                 FROM bills b

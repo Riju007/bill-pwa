@@ -592,6 +592,61 @@ tbody tr:last-child td {
     text-underline-offset: 3px;
 }
 
+.customer-name-link {
+    padding: 0;
+    border: 0;
+    color: var(--primary-dark);
+    background: transparent;
+    font-weight: 750;
+    text-align: left;
+}
+
+.customer-name-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.customer-table {
+    min-width: 760px;
+    table-layout: fixed;
+}
+
+.customer-table th:nth-child(1) {
+    width: 22%;
+}
+
+.customer-table th:nth-child(2) {
+    width: 13%;
+}
+
+.customer-table th:nth-child(3) {
+    width: 17%;
+}
+
+.customer-table th:nth-child(4) {
+    width: 30%;
+}
+
+.customer-table th:nth-child(5) {
+    width: 18%;
+}
+
+.customer-address-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.required-note {
+    margin: -8px 0 12px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+dialog .required-note {
+    margin: 0 0 12px;
+}
+
 .dashboard-directories {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1027,10 +1082,50 @@ tbody tr:last-child td {
     background: #fcfcfe;
 }
 
+.item-row:focus-within {
+    position: relative;
+    z-index: 4;
+}
+
 .item-field {
+    position: relative;
     display: grid;
     gap: 6px;
     min-width: 0;
+}
+
+.item-suggestions {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.item-suggestion {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 6px;
+    color: var(--ink);
+    background: transparent;
+    font-size: 12px;
+    text-align: left;
+}
+
+.item-suggestion:hover,
+.item-suggestion.active {
+    color: var(--primary-dark);
+    background: var(--primary-soft);
 }
 
 .item-field:nth-child(1),
@@ -1050,31 +1145,36 @@ tbody tr:last-child td {
     display: flex;
     grid-column: 1 / -1;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 7px;
     padding-top: 2px;
 }
 
 .draft-action {
-    display: grid;
-    width: 38px;
+    display: inline-flex;
+    flex: 1 1 0;
+    width: 100%;
+    min-width: 104px;
     min-height: 38px;
-    place-items: center;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
     border-radius: 9px;
-    font-size: 18px;
-    font-weight: 900;
+    font-size: 12px;
+    font-weight: 750;
 }
 
 .draft-action.accept {
     border: 1px solid var(--primary);
-    color: var(--primary);
-    background: var(--primary-soft);
+    color: #fff;
+    background: var(--primary);
 }
 
 .draft-action.reject {
     border: 1px solid #efb5ba;
-    color: var(--red);
-    background: #fff7f7;
+    color: #fff;
+    background: var(--red);
 }
 
 .added-items-wrap {
@@ -1908,8 +2008,8 @@ dialog::backdrop {
 
 :root[data-theme="dark"] .draft-action.reject,
 :root[data-theme="dark"] .remove-added-item {
-    border-color: #5a3036;
-    background: #28191c;
+    border-color: #a63d49;
+    background: #8d2935;
 }
 
 :root[data-theme="dark"] .summary-card {

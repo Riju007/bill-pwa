@@ -3,7 +3,7 @@ import { text, type Parsed } from "./http";
 interface CustomerInput {
     code: string | null;
     name: string;
-    mobile: string | null;
+    mobile: string;
     address: string | null;
 }
 
@@ -40,14 +40,14 @@ export function parseCustomer(b: Record<string, unknown>): Parsed<CustomerInput>
     if (!name || name.length > 100) {
         return { ok: false, error: "name is required (max 100 characters)" };
     }
-    if (mobile && !/^\d{10}$/.test(mobile)) {
-        return { ok: false, error: "mobile must be exactly 10 digits" };
+    if (!mobile || !/^\d{10}$/.test(mobile)) {
+        return { ok: false, error: "mobile is required and must be exactly 10 digits" };
     }
     if (code && code.length > 20) {
         return { ok: false, error: "code must be at most 20 characters" };
     }
-    if (address && address.length > 300) {
-        return { ok: false, error: "address must be at most 300 characters" };
+    if (address && address.length > 200) {
+        return { ok: false, error: "address must be at most 200 characters" };
     }
     return { ok: true, value: { code, name, mobile, address } };
 }

@@ -107,6 +107,32 @@ test("customer creation rejects an invalid mobile number before accessing D1", a
     assert.match((await response.json()).error, /exactly 10 digits/);
 });
 
+test("customer creation requires a mobile number", async () => {
+    const response = await worker.fetch(new Request("https://billwise.test/api/customers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "Sample Customer" }),
+    }), env);
+
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /mobile is required/);
+});
+
+test("customer address is limited to 200 characters", async () => {
+    const response = await worker.fetch(new Request("https://billwise.test/api/customers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+            name: "Sample Customer",
+            mobile: "9876543210",
+            address: "A".repeat(201),
+        }),
+    }), env);
+
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /at most 200 characters/);
+});
+
 test("customer creation saves a valid customer", async () => {
     const customerEnv = {
         DB: {
@@ -141,6 +167,36 @@ test("customer creation saves a valid customer", async () => {
     });
 });
 
+test("customer details include their creation date", async () => {
+    const customerEnv = {
+        DB: {
+            prepare(query) {
+                assert.match(query, /created_at AS createdAt/);
+                return {
+                    bind() {
+                        return {
+                            all: async () => ({
+                                results: [{
+                                    id: 21,
+                                    name: "Sample Customer",
+                                    code: "C001",
+                                    mobile: "9876543210",
+                                    address: "Example Road",
+                                    createdAt: "2026-11-23T12:00:00.000Z",
+                                }],
+                            }),
+                        };
+                    },
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/customers/21"), customerEnv);
+
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).createdAt, "2026-11-23T12:00:00.000Z");
+});
+
 test("product code suggestions include saved catalog and bill item codes", async () => {
     const suggestionsEnv = {
         DB: {
@@ -158,6 +214,25 @@ test("product code suggestions include saved catalog and bill item codes", async
 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), ["CAT-1", "BILL-1"]);
+});
+
+test("product name suggestions include catalog and previous bill items", async () => {
+    const suggestionsEnv = {
+        DB: {
+            prepare(query) {
+                assert.match(query, /UNION/);
+                return {
+                    all: async () => ({
+                        results: [{ name: "Catalog Phone" }, { name: "Previously Billed Phone" }],
+                    }),
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/bills/product-names"), suggestionsEnv);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), ["Catalog Phone", "Previously Billed Phone"]);
 });
 
 test("dashboard aggregates bills and items by customer", async () => {
@@ -197,6 +272,9 @@ test("dashboard aggregates bills and items by customer", async () => {
                         if (query.includes("COUNT(*) AS billCount")) {
                             return { results: [{ billCount: 2, totalSales: 3000, outstanding: 2000 }] };
                         }
+                        if (query.includes("b.due_date AS dueDate")) {
+                            return { results: [{ billNo: "INV-2", dueDate: "2026-12-01" }] };
+                        }
                         if (query.includes("bi.id AS itemId")) return { results: customerBillRows };
                         return { results: [] };
                     },
@@ -208,6 +286,7 @@ test("dashboard aggregates bills and items by customer", async () => {
     const result = await response.json();
 
     assert.equal(response.status, 200);
+    assert.equal(result.recentBills[0].dueDate, "2026-12-01");
     assert.equal(result.customerBilling.length, 1);
     assert.deepEqual(
         {

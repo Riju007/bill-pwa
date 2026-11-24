@@ -178,6 +178,7 @@
                 <button class="button ghost" type="button" data-close-dialog="customer-dialog" aria-label="Close customer form">Close</button>
             </div>
             <div class="dialog-body">
+                <p class="required-note"><span class="required-mark" aria-hidden="true">*</span> Required field</p>
                 <div class="field">
                     <label for="new-customer-name">Customer name <span class="required-mark" aria-hidden="true">*</span></label>
                     <input class="form-control" id="new-customer-name" name="name" maxlength="100" autocomplete="name" required>
@@ -187,12 +188,12 @@
                     <input class="form-control" id="new-customer-code" name="code" maxlength="20">
                 </div>
                 <div class="field">
-                    <label for="new-customer-mobile">Mobile number <span class="field-hint">(optional)</span></label>
-                    <input class="form-control" id="new-customer-mobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number">
+                    <label for="new-customer-mobile">Mobile number <span class="required-mark" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="new-customer-mobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number" required>
                 </div>
                 <div class="field">
                     <label for="new-customer-address">Address <span class="field-hint">(optional)</span></label>
-                    <textarea class="form-control" id="new-customer-address" name="address" maxlength="300" autocomplete="street-address"></textarea>
+                    <textarea class="form-control" id="new-customer-address" name="address" maxlength="200" autocomplete="street-address"></textarea>
                 </div>
                 <p class="dialog-message" id="customer-dialog-message" role="status" aria-live="polite"></p>
             </div>
@@ -210,6 +211,7 @@
                 <button class="button ghost" type="button" data-close-dialog="product-dialog" aria-label="Close product form">Close</button>
             </div>
             <div class="dialog-body">
+                <p class="required-note"><span class="required-mark" aria-hidden="true">*</span> Required field</p>
                 <div class="field">
                     <label for="new-product-name">Product name <span class="required-mark" aria-hidden="true">*</span></label>
                     <input class="form-control" id="new-product-name" name="name" maxlength="100" required>

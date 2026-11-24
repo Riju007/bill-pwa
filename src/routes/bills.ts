@@ -20,6 +20,23 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
         ).all();
         return json(results.map((row) => row.code));
     }
+    if (url.pathname === "/api/bills/product-names") {
+        if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+        const { results } = await env.DB.prepare(
+            `SELECT name
+            FROM (
+                SELECT name
+                FROM products
+                WHERE name IS NOT NULL AND TRIM(name) <> ''
+                UNION
+                SELECT product_name AS name
+                FROM bill_items
+                WHERE product_name IS NOT NULL AND TRIM(product_name) <> ''
+            )
+            ORDER BY name COLLATE NOCASE`,
+        ).all();
+        return json(results.map((row) => row.name));
+    }
 
     const billDetailMatch = /^\/api\/bills\/(\d+)$/.exec(url.pathname);
     if (billDetailMatch) {

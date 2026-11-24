@@ -12,7 +12,7 @@ export async function handleCustomers(request: Request, env: Env): Promise<Respo
 
         if (request.method === "GET") {
             const customer = await env.DB
-                .prepare("SELECT id, code, name, mobile, address FROM customers WHERE id = ?")
+                .prepare("SELECT id, code, name, mobile, address, created_at AS createdAt FROM customers WHERE id = ?")
                 .bind(customerId)
                 .all();
             return customer.results[0]

@@ -11,6 +11,7 @@ const money = (value) => currency.format(Number(value) || 0);
 let customers = [];
 let products = [];
 let productCodes = [];
+let productNames = [];
 let addedItems = [];
 let customerSearchTimer;
 let productSearchTimer;
@@ -106,29 +107,43 @@ function fieldIsValid(field) {
 
 function validateItemRow(row, focusInvalid = true) {
     const fields = [...row.querySelectorAll("input, select, textarea")].filter((field) => field.willValidate);
-    const invalidFields = fields.filter((field) => !fieldIsValid(field));
+    const errors = new Map(fields.map((field) => [field, itemFieldError(field)]));
+    const invalidFields = fields.filter((field) => errors.get(field));
     for (const field of fields) {
-        if (invalidFields.includes(field)) field.setAttribute("aria-invalid", "true");
-        else field.removeAttribute("aria-invalid");
-    }
-
-    let error = row.querySelector(".item-validation");
-    if (!error) {
-        error = document.createElement("p");
-        error.className = "item-validation";
-        error.setAttribute("role", "alert");
-        row.append(error);
-    }
-    error.id = `${fields[0]?.id || "item"}-error`;
-    error.textContent = "Complete all required item fields using valid values.";
-    error.hidden = invalidFields.length === 0;
-    for (const field of fields) {
-        if (error.hidden) field.removeAttribute("aria-describedby");
-        else field.setAttribute("aria-describedby", error.id);
+        const error = field.closest(".item-field").querySelector(".item-field-error");
+        error.textContent = errors.get(field);
+        error.hidden = !errors.get(field);
+        if (error.hidden) {
+            field.removeAttribute("aria-invalid");
+            field.removeAttribute("aria-describedby");
+        } else {
+            field.setAttribute("aria-invalid", "true");
+            field.setAttribute("aria-describedby", error.id);
+        }
     }
 
     if (focusInvalid && invalidFields[0]) invalidFields[0].focus();
     return invalidFields.length === 0;
+}
+
+function itemFieldError(field) {
+    const value = String(field.value).trim();
+    const label = field.closest(".item-field").querySelector("label").textContent.replace(/\s*\*$/, "").trim();
+
+    if (field.dataset.field === "imei") {
+        if (!value) return "IMEI is required and must be exactly 15 digits (0-9 only).";
+        return /^\d{15}$/.test(value) ? "" : "IMEI must be exactly 15 digits (0-9 only).";
+    }
+    if (field.dataset.field === "amount" && field.validity.badInput) return "Enter a valid amount.";
+    if (!value) return `${label} is required.`;
+    if (field.dataset.field === "amount") {
+        if (!Number.isFinite(Number(value))) return "Enter a valid amount.";
+        const amount = Number(value);
+        if (amount < 1000 || amount > 500000) return "Amount must be between ₹1,000 and ₹5,00,000.";
+        if (field.validity.stepMismatch) return "Amount can include up to 2 decimal places.";
+    }
+    if (!field.validity.valid) return field.validationMessage || `${label} is invalid.`;
+    return "";
 }
 
 function validateFormFields(target, focusInvalid = true, markAttempt = true) {
@@ -286,7 +301,6 @@ function itemInput(field, placeholder, type = "text") {
     input.className = "form-control";
     input.type = type;
     input.dataset.field = field;
-    if (field === "productCode") input.setAttribute("list", "saved-product-codes");
     input.placeholder = placeholder;
     input.setAttribute("aria-label", placeholder);
     input.required = true;
@@ -336,8 +350,92 @@ function itemInput(field, placeholder, type = "text") {
         input.pattern = "[0-9]{15}";
     }
     */
-    input.addEventListener("input", updateTotals);
+    input.addEventListener("input", () => {
+        if (field === "imei") input.value = input.value.replace(/[^0-9]/g, "").slice(0, 15);
+        updateTotals();
+    });
     return input;
+}
+
+function attachItemSuggestions(input, wrapper, field) {
+    const list = document.createElement("div");
+    list.className = "item-suggestions";
+    list.id = `${input.id}-suggestions`;
+    list.setAttribute("role", "listbox");
+    list.hidden = true;
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-controls", list.id);
+    input.setAttribute("aria-expanded", "false");
+    wrapper.append(list);
+
+    let activeIndex = -1;
+    let options = [];
+    const hide = () => {
+        list.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
+        activeIndex = -1;
+    };
+    const select = (value) => {
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        hide();
+        input.focus();
+    };
+    const render = () => {
+        const source = field === "productName" ? productNames : productCodes;
+        const query = input.value.trim().toLocaleLowerCase();
+        options = query
+            ? [...new Set(source)].filter((value) => value.toLocaleLowerCase().includes(query)).slice(0, 8)
+            : [];
+        list.replaceChildren();
+        activeIndex = -1;
+        input.removeAttribute("aria-activedescendant");
+        if (!options.length) {
+            hide();
+            return;
+        }
+
+        options.forEach((value, index) => {
+            const option = document.createElement("button");
+            option.type = "button";
+            option.className = "item-suggestion";
+            option.id = `${list.id}-option-${index}`;
+            option.setAttribute("role", "option");
+            option.setAttribute("aria-selected", "false");
+            option.textContent = value;
+            option.addEventListener("mousedown", (event) => event.preventDefault());
+            option.addEventListener("click", () => select(value));
+            list.append(option);
+        });
+        list.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+    };
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+    input.addEventListener("blur", () => window.setTimeout(hide, 120));
+    input.addEventListener("keydown", (event) => {
+        if (list.hidden || !options.length) return;
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            activeIndex = (activeIndex + direction + options.length) % options.length;
+            const optionButtons = [...list.querySelectorAll(".item-suggestion")];
+            optionButtons.forEach((option, index) => {
+                const active = index === activeIndex;
+                option.classList.toggle("active", active);
+                option.setAttribute("aria-selected", String(active));
+            });
+            input.setAttribute("aria-activedescendant", optionButtons[activeIndex].id);
+            optionButtons[activeIndex].scrollIntoView({ block: "nearest" });
+        } else if (event.key === "Enter" && activeIndex >= 0) {
+            event.preventDefault();
+            select(options[activeIndex]);
+        } else if (event.key === "Escape") {
+            hide();
+        }
+    });
 }
 
 function addItem(values = {}, editingIndex = null) {
@@ -355,16 +453,29 @@ function addItem(values = {}, editingIndex = null) {
         const labelElement = document.createElement("label");
         const controlId = `item-${Date.now()}-${field}`;
         labelElement.htmlFor = controlId;
-        labelElement.textContent = label;
+        labelElement.append(document.createTextNode(label));
+        const requiredMark = document.createElement("span");
+        requiredMark.className = "required-mark";
+        requiredMark.setAttribute("aria-hidden", "true");
+        requiredMark.textContent = "*";
+        labelElement.append(" ", requiredMark);
         control.id = controlId;
-        wrapper.append(labelElement, control);
+        const error = document.createElement("span");
+        error.className = "field-error item-field-error";
+        error.id = `${controlId}-error`;
+        error.setAttribute("role", "alert");
+        error.hidden = true;
+        wrapper.append(labelElement, control, error);
+        if (field === "productName" || field === "productCode") {
+            attachItemSuggestions(control, wrapper, field);
+        }
         row.append(wrapper);
     };
 
-    addField("productName", "Product Name *", itemInput("productName", "Enter product name"));
-    addField("productCode", "Product Code *", itemInput("productCode", "Enter product code"));
-    addField("imei", "IMEI Number *", itemInput("imei", "15 digits"));
-    addField("amount", "Amount (₹) *", itemInput("amount", "0.00", "number"));
+    addField("productName", "Product Name", itemInput("productName", "Enter product name"));
+    addField("productCode", "Product Code", itemInput("productCode", "Enter product code"));
+    addField("imei", "IMEI Number", itemInput("imei", "15 digits"));
+    addField("amount", "Amount (₹)", itemInput("amount", "0.00", "number"));
 
     for (const field of ["productName", "productCode", "imei", "amount"]) {
         row.querySelector(`[data-field="${field}"]`).value = values[field] ?? "";
@@ -374,9 +485,15 @@ function addItem(values = {}, editingIndex = null) {
     const save = document.createElement("button");
     save.className = "draft-action accept";
     save.type = "button";
-    save.setAttribute("aria-label", "Save item");
-    save.title = "Save item";
-    save.textContent = "✓";
+    const saveLabel = editingIndex === null ? "Add item" : "Save changes";
+    save.setAttribute("aria-label", saveLabel);
+    save.title = saveLabel;
+    const addIcon = document.createElement("i");
+    addIcon.className = "bi bi-plus-lg";
+    addIcon.setAttribute("aria-hidden", "true");
+    const saveText = document.createElement("span");
+    saveText.textContent = saveLabel;
+    save.append(addIcon, saveText);
     save.addEventListener("click", () => {
         if (!validateItemRow(row)) {
             setMessage("Please complete all required item fields.", "error");
@@ -400,9 +517,15 @@ function addItem(values = {}, editingIndex = null) {
     const cancel = document.createElement("button");
     cancel.className = "draft-action reject";
     cancel.type = "button";
-    cancel.setAttribute("aria-label", "Cancel item entry");
-    cancel.title = "Cancel item entry";
-    cancel.textContent = "×";
+    const cancelLabel = editingIndex === null ? "Cancel" : "Cancel edit";
+    cancel.setAttribute("aria-label", cancelLabel);
+    cancel.title = cancelLabel;
+    const cancelIcon = document.createElement("i");
+    cancelIcon.className = "bi bi-x-lg";
+    cancelIcon.setAttribute("aria-hidden", "true");
+    const cancelText = document.createElement("span");
+    cancelText.textContent = cancelLabel;
+    cancel.append(cancelIcon, cancelText);
     cancel.addEventListener("click", () => {
         row.remove();
         renderAddedItems();
@@ -622,6 +745,17 @@ function dateLabel(value) {
     }).format(date);
 }
 
+function createdAtLabel(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: "Asia/Kolkata",
+    }).format(date);
+}
+
 function paymentStatus(bill) {
     return Number(bill.due) <= 0 ? ["Paid", "paid"] : ["Payment due", "due"];
 }
@@ -675,7 +809,13 @@ async function openDirectoryDetails(type, id) {
     try {
         const entry = await api(`/api/${settings.endpoint}/${encodeURIComponent(id)}`);
         const fields = type === "customer"
-            ? [["Customer code", entry.code], ["Name", entry.name], ["Mobile", entry.mobile], ["Address", entry.address]]
+            ? [
+                ["Name", entry.name],
+                ["Customer code", entry.code],
+                ["Mobile", entry.mobile],
+                ["Address", entry.address],
+                ["Created on", createdAtLabel(entry.createdAt)],
+            ]
             : [["Product code", entry.code], ["Product name", entry.name]];
         showRecordDetails(settings.content, fields);
     } catch (error) {
@@ -776,7 +916,7 @@ function renderBillRows(target, bills, compact = false) {
     if (!bills.length) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = compact ? 5 : 8;
+        cell.colSpan = compact ? 6 : 8;
         cell.className = "empty-state";
         cell.innerHTML = "<strong>No bills yet</strong>Once you save a bill, it will show up here.";
         row.append(cell);
@@ -796,6 +936,7 @@ function renderBillRows(target, bills, compact = false) {
         row.append(billCell);
         appendCell(row, bill.customerName);
         appendCell(row, dateLabel(bill.billDate));
+        if (compact) appendCell(row, dateLabel(bill.dueDate));
         appendCell(row, money(bill.total));
         if (compact) {
             const [label, status] = paymentStatus({ due: Number(bill.total) - Number(bill.paid) });
@@ -839,7 +980,7 @@ async function loadDashboard() {
         target.replaceChildren();
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 5;
+        cell.colSpan = 6;
         cell.className = "empty-state";
         cell.textContent = `Could not load billing data: ${error.message}`;
         row.append(cell);
@@ -1025,10 +1166,19 @@ async function loadCustomerDirectory(query = "") {
         target.replaceChildren();
         for (const customer of results) {
             const row = document.createElement("tr");
+            const nameCell = document.createElement("td");
+            const nameLink = document.createElement("button");
+            nameLink.className = "customer-name-link";
+            nameLink.type = "button";
+            nameLink.textContent = customer.name;
+            nameLink.setAttribute("aria-label", `View customer details for ${customer.name}`);
+            nameLink.addEventListener("click", () => openDirectoryDetails("customer", customer.id));
+            nameCell.append(nameLink);
+            row.append(nameCell);
             appendCell(row, customer.code || "—");
-            appendCell(row, customer.name);
             appendCell(row, customer.mobile || "—");
-            appendCell(row, customer.address || "—");
+            const addressCell = appendCell(row, customer.address || "—", "customer-address-cell");
+            addressCell.title = customer.address || "";
             appendActions(row, [
                 { name: "view", label: `View ${customer.name}`, onClick: () => openDirectoryDetails("customer", customer.id) },
                 { name: "edit", label: `Edit ${customer.name}`, onClick: () => editDirectoryEntry("customer", customer.id) },
@@ -1072,9 +1222,10 @@ async function loadProductDirectory(query = "") {
 }
 
 async function loadLookups() {
-    const [customerResult, codeResult] = await Promise.allSettled([
+    const [customerResult, codeResult, nameResult] = await Promise.allSettled([
         api("/api/customers"),
         api("/api/bills/product-codes"),
+        api("/api/bills/product-names"),
     ]);
     if (customerResult.status === "rejected") throw customerResult.reason;
     customers = customerResult.value;
@@ -1084,12 +1235,15 @@ async function loadLookups() {
         productCodes = [];
         showToast(`Saved product code suggestions are unavailable: ${codeResult.reason.message}`, "error");
     }
-    const suggestions = document.querySelector("#saved-product-codes");
-    suggestions.replaceChildren(...[...new Set(productCodes)].map((code) => {
-        const option = document.createElement("option");
-        option.value = code;
-        return option;
-    }));
+    if (nameResult.status === "fulfilled") {
+        productNames = nameResult.value;
+    } else {
+        productNames = [];
+        showToast(`Saved product name suggestions are unavailable: ${nameResult.reason.message}`, "error");
+    }
+    for (const input of itemRows.querySelectorAll("input[aria-controls]")) {
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
     customerSelect.replaceChildren(new Option("Select a customer", ""));
     for (const customer of customers) {
         const detail = customer.mobile ? ` · ${customer.mobile}` : "";

@@ -9,7 +9,8 @@ const customer = {
     code: "C001",
     name: "Sample Customer",
     mobile: "9876543210",
-    address: "12 Example Road, Kolkata",
+    address: "Example Road, Kolkata, ".repeat(8),
+    createdAt: "2026-11-23T12:00:00.000Z",
 };
 const customers = [customer];
 const product = { id: 1, code: "P001", name: "Sample Phone" };
@@ -21,7 +22,7 @@ const bill = {
     customerId: customer.id,
     customerName: customer.name,
     customerMobile: customer.mobile,
-    customerAddress: customer.address,
+    customerAddress: "12 Example Road, Kolkata",
     paid: 10000,
     items: Array.from({ length: 40 }, (_, index) => ({
         productCode: product.code,
@@ -40,7 +41,7 @@ const secondBill = {
     customerId: customer.id,
     customerName: customer.name,
     customerMobile: customer.mobile,
-    customerAddress: customer.address,
+    customerAddress: "12 Example Road, Kolkata",
     paid: 500,
     items: [{
         productCode: "P002",
@@ -55,6 +56,7 @@ const bills = [secondBill, bill].map((entry) => ({
     id: entry.id,
     billNo: entry.billNo,
     billDate: entry.billDate,
+    dueDate: entry.dueDate,
     customerName: entry.customerName,
     paid: entry.paid,
     total: entry.total,
@@ -110,9 +112,23 @@ const server = createServer(async (request, response) => {
         let body = "";
         for await (const chunk of request) body += chunk;
         const draft = JSON.parse(body);
-        const saved = { id: customers.length + 1, ...draft };
+        const saved = {
+            id: customers.length + 1,
+            createdAt: "2026-11-24T12:00:00.000Z",
+            ...draft,
+        };
         customers.push(saved);
         json(response, saved, 201);
+        return;
+    }
+    const customerDetailMatch = /^\/api\/customers\/(\d+)$/.exec(url.pathname);
+    if (customerDetailMatch && request.method === "GET") {
+        const entry = customers.find((item) => item.id === Number(customerDetailMatch[1]));
+        if (entry) {
+            json(response, entry);
+            return;
+        }
+        json(response, { error: "Not found" }, 404);
         return;
     }
     if (url.pathname === "/api/customers" && request.method === "GET") {
@@ -125,6 +141,10 @@ const server = createServer(async (request, response) => {
     }
     if (url.pathname === "/api/bills/product-codes") {
         json(response, ["P001", "P002"]);
+        return;
+    }
+    if (url.pathname === "/api/bills/product-names") {
+        json(response, ["Sample Phone", "Second Phone"]);
         return;
     }
     if (url.pathname === "/api/bills" && request.method === "GET") {
