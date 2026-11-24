@@ -66,6 +66,7 @@ textarea:focus-visible {
     padding: 24px 16px;
     color: #fff;
     background: var(--navy);
+    transition: transform .24s ease;
 }
 
 .brand {
@@ -76,11 +77,11 @@ textarea:focus-visible {
 }
 
 .brand img {
-    width: 72px;
+    width: 42px;
     height: 42px;
     border: 1px solid rgb(255 255 255 / 13%);
     border-radius: 9px;
-    background: #07091c;
+    background: #103b2d;
     object-fit: contain;
 }
 
@@ -89,13 +90,6 @@ textarea:focus-visible {
     font-size: 17px;
     font-weight: 750;
     letter-spacing: -.03em;
-    white-space: nowrap;
-}
-
-.brand-caption {
-    margin: 3px 0 0;
-    color: #c1d8ca;
-    font-size: 11px;
     white-space: nowrap;
 }
 
@@ -150,6 +144,16 @@ textarea:focus-visible {
 .main {
     min-height: 100vh;
     margin-left: 252px;
+    transition: margin-left .24s ease;
+}
+
+.app.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+    pointer-events: none;
+}
+
+.app.sidebar-collapsed .main {
+    margin-left: 0;
 }
 
 .topbar {
@@ -166,6 +170,7 @@ textarea:focus-visible {
     backdrop-filter: blur(14px);
 }
 
+.topbar-left,
 .mobile-brand,
 .topbar-actions {
     display: flex;
@@ -173,16 +178,45 @@ textarea:focus-visible {
     gap: 12px;
 }
 
+.topbar-actions {
+    margin-left: auto;
+}
+
 .mobile-brand {
     display: none;
     font-weight: 750;
 }
 
+.sidebar-toggle {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    color: var(--muted);
+    background: var(--surface);
+}
+
+.sidebar-toggle:hover {
+    color: var(--primary);
+    background: var(--primary-soft);
+}
+
+.sidebar-toggle .bi {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    font-size: 17px;
+}
+
 .mobile-brand img {
-    width: 50px;
-    height: 29px;
-    border-radius: 7px;
-    background: #07091c;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #103b2d;
     object-fit: contain;
 }
 
@@ -558,7 +592,7 @@ tbody tr:last-child td {
 
 .dashboard-directories {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
     margin-top: 18px;
 }
@@ -660,6 +694,15 @@ tbody tr:last-child td {
     align-items: flex-start;
     gap: 12px;
     margin-bottom: 19px;
+}
+
+.items-section-heading {
+    align-items: center;
+}
+
+.items-section-heading .table-add-item {
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 
 .section-number {
@@ -1231,6 +1274,10 @@ dialog::backdrop {
         margin-left: 220px;
     }
 
+    .app.sidebar-collapsed .main {
+        margin-left: 0;
+    }
+
     .form-layout {
         grid-template-columns: minmax(0, 1fr) 275px;
     }
@@ -1246,6 +1293,10 @@ dialog::backdrop {
         display: none;
     }
 
+    .sidebar-toggle {
+        display: none;
+    }
+
     .main {
         margin-left: 0;
         padding-bottom: 70px;
@@ -1258,10 +1309,6 @@ dialog::backdrop {
 
     .mobile-brand {
         display: flex;
-    }
-
-    .today {
-        display: none;
     }
 
     .content {
@@ -1431,13 +1478,6 @@ dialog::backdrop {
         font-size: 12px;
     }
 
-    .item-row select {
-        grid-column: 1 / -1;
-        min-height: 43px;
-        padding-right: 47px;
-        font-size: 12px;
-    }
-
     .item-row input::placeholder {
         color: #7d8495;
         opacity: 1;
@@ -1453,7 +1493,6 @@ dialog::backdrop {
 
     .item-row input[data-field="productName"] {
         grid-column: 1 / -1;
-        padding-right: 47px;
     }
 
     .item-row input[data-field="productCode"] {
@@ -1624,6 +1663,7 @@ dialog::backdrop {
 }
 
 :root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .sidebar-toggle,
 :root[data-theme="dark"] .button.secondary,
 :root[data-theme="dark"] .button.ghost {
     border-color: var(--line);

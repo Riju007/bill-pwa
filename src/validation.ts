@@ -13,9 +13,9 @@ interface ProductInput {
 }
 
 interface BillItemInput {
-    productCode: string | null;
+    productCode: string;
     productName: string;
-    imei: string | null;
+    imei: string;
     amount: number;
 }
 
@@ -108,7 +108,7 @@ export function parseBill(b: Record<string, unknown>): Parsed<BillInput> {
         return { ok: false, error: "paid must be a non-negative number" };
     }
     if (!Array.isArray(b.items) || b.items.length < 1 || b.items.length > 100) {
-        return { ok: false, error: "items must contain between 1 and 100 products" };
+        return { ok: false, error: "items must contain between 1 and 100 items" };
     }
 
     const items: BillItemInput[] = [];
@@ -125,7 +125,7 @@ export function parseBill(b: Record<string, unknown>): Parsed<BillInput> {
             return { ok: false, error: "Each productName is required (max 100 characters)" };
         }
         if (!productCode || productCode.length > 20) {
-            return { ok: false, error: "productCode is required (max 20 characters)" };
+            return { ok: false, error: "Each productCode is required (max 20 characters)" };
         }
         if (!imei || !/^\d{15}$/.test(imei)) {
             return { ok: false, error: "imei must be exactly 15 numeric digits" };

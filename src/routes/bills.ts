@@ -49,6 +49,7 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
                     .all();
                 if (customer.results.length === 0) return json({ error: "Customer not found" }, 404);
             }
+            /* Product catalog validation is paused while bill items are entered manually.
             for (const item of bill.items) {
                 const product = await env.DB
                     .prepare("SELECT id FROM products WHERE name = ? AND (? IS NULL OR code = ?) LIMIT 1")
@@ -58,6 +59,7 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
                     return json({ error: `Product not found: ${item.productName}` }, 404);
                 }
             }
+            */
 
             const statements = [
                 env.DB.prepare(
@@ -121,6 +123,7 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
                     return json({ error: "Customer not found" }, 404);
                 }
             }
+            /* Product catalog validation is paused while bill items are entered manually.
             for (const item of bill.items) {
                 const product = await env.DB
                     .prepare("SELECT id FROM products WHERE name = ? AND (? IS NULL OR code = ?) LIMIT 1")
@@ -130,6 +133,7 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
                     return json({ error: `Product not found: ${item.productName}` }, 404);
                 }
             }
+            */
 
             const statements = [];
             statements.push(

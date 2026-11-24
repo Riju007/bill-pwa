@@ -3,7 +3,7 @@
                         <div>
                             <p class="eyebrow">Billing</p>
                             <h1 id="create-title">Create a new bill</h1>
-                            <p class="subtitle">Add the bill details, customer, and products below.</p>
+                            <p class="subtitle">Add the bill details, customer, and items below.</p>
                         </div>
                     </div>
 
@@ -56,19 +56,19 @@
                                 </section>
 
                                 <section class="form-card" aria-labelledby="items-title">
-                                    <div class="section-heading">
+                                    <div class="section-heading items-section-heading">
                                         <span class="section-number">03</span>
                                         <div>
                                             <h2 id="items-title">Add Items</h2>
                                             <p>Add each item and its amount. Your total updates automatically.</p>
                                         </div>
-                                    </div>
-                                    <div class="items-head">
-                                        <span class="items-head-title">0 items</span>
                                         <button class="table-add-item" id="add-item" type="button" title="Add item" aria-label="Add item">
                                             <i class="bi bi-plus-lg" aria-hidden="true"></i>
                                             Add item
                                         </button>
+                                    </div>
+                                    <div class="items-head">
+                                        <span class="items-head-title">0 items</span>
                                     </div>
                                     <div id="item-rows"></div>
                                     <div class="added-items-wrap">
@@ -77,15 +77,16 @@
                                             <table class="added-items-table">
                                                 <thead>
                                                     <tr>
-                                                        <th>Product</th>
-                                                        <th>Code</th>
-                                                        <th>IMEI / serial</th>
-                                                        <th>Amount</th>
+                                                        <th>#</th>
+                                                        <th>Product Name</th>
+                                                        <th>Product Code</th>
+                                                        <th>IMEI Number</th>
+                                                        <th>Amount (₹)</th>
                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="added-items-body">
-                                                    <tr><td colspan="5" class="empty-state">No items added yet.</td></tr>
+                                                    <tr><td colspan="6" class="empty-state">No items added yet.</td></tr>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -95,7 +96,7 @@
 
                             <aside class="summary-card" aria-labelledby="summary-title">
                                 <h2 id="summary-title">Bill summary</h2>
-                                <p>Totals update as you add products.</p>
+                                <p>Totals update as you add items.</p>
                                 <div class="summary-line">
                                     <span>Items</span>
                                     <strong id="item-count">0</strong>

@@ -5,8 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f5f8f6">
-    <meta name="description" content="A simple, polished workspace for creating and tracking bills.">
-    <title>PB Ledger | Pabitra Betal</title>
+    <meta name="description" content="PB Ledger, a simple workspace for creating and tracking bills.">
+    <title>PB Ledger</title>
     <link rel="icon" type="image/svg+xml" href="/icons/pb-ledger.svg">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="manifest" href="/manifest.webmanifest">
@@ -20,12 +20,11 @@
 
 <body>
     <div class="app">
-        <aside class="sidebar" aria-label="Main navigation">
+        <aside class="sidebar" id="app-sidebar" aria-label="Main navigation">
             <div class="brand">
-                <img src="/pb-logo.gif" alt="Pabitra Betal logo">
+                <img src="/icons/pb-ledger.svg" alt="">
                 <div>
                     <p class="brand-name">PB Ledger</p>
-                    <p class="brand-caption">Pabitra Betal</p>
                 </div>
             </div>
             <p class="nav-label">Workspace</p>
@@ -46,26 +45,32 @@
                     <i class="nav-icon bi bi-people" aria-hidden="true"></i>
                     Customers
                 </button>
+                <!-- Product navigation temporarily paused; keep for later restoration.
                 <button class="nav-button" type="button" data-page="products">
                     <i class="nav-icon bi bi-box-seam" aria-hidden="true"></i>
                     Products
                 </button>
+                -->
             </nav>
         </aside>
 
         <main class="main">
             <header class="topbar">
-                <div class="mobile-brand">
-                    <img src="/pb-logo.gif" alt="">
-                    <span>PB Ledger</span>
+                <div class="topbar-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Hide sidebar" aria-controls="app-sidebar" aria-expanded="true" title="Hide sidebar">
+                        <i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i>
+                    </button>
+                    <div class="mobile-brand">
+                        <img src="/icons/pb-ledger.svg" alt="">
+                        <span>PB Ledger</span>
+                    </div>
                 </div>
                 <div class="topbar-actions">
-                    <span class="owner-label">Pabitra Betal</span>
                     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">
                         <i class="bi bi-moon" aria-hidden="true"></i>
                         <span class="theme-toggle-label">Dark theme</span>
                     </button>
-                    <span class="avatar" aria-label="Demo shop account">PB</span>
+                    <span class="avatar" aria-label="PB Ledger account">PB</span>
                 </div>
             </header>
 
@@ -100,10 +105,12 @@
             <i class="nav-icon bi bi-people" aria-hidden="true"></i>
             Customers
         </button>
+        <!-- Product navigation temporarily paused; keep for later restoration.
         <button class="nav-button" type="button" data-page="products">
             <i class="nav-icon bi bi-box-seam" aria-hidden="true"></i>
             Products
         </button>
+        -->
     </nav>
 
     <dialog id="preview-dialog" aria-labelledby="preview-title">

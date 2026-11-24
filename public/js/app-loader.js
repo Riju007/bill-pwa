@@ -1,4 +1,4 @@
-const pages = ["dashboard", "billing", "bills", "customers", "products"];
+const pages = ["dashboard", "billing", "bills", "customers" /*, "products" */];
 const pageContent = document.querySelector("#page-content");
 
 async function loadWorkspace() {

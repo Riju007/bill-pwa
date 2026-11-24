@@ -1,7 +1,7 @@
 {
-  "name": "PB Ledger - Pabitra Betal",
+  "name": "PB Ledger",
   "short_name": "PB Ledger",
-  "description": "PB Ledger - billing and sales ledger for Pabitra Betal.",
+  "description": "PB Ledger - billing and sales ledger for your wholesale business.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f8f6",

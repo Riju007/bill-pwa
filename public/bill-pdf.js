@@ -36,6 +36,7 @@
     function integerInWords(value) {
         if (value === 0) return "Zero";
         const groups = [
+            [1000000000, "Arab"],
             [10000000, "Crore"],
             [100000, "Lakh"],
             [1000, "Thousand"],
@@ -97,7 +98,7 @@
                     resolve(canvas.toDataURL("image/png"));
                 };
                 image.onerror = () => reject(new Error("Could not load the shop logo."));
-                image.src = "/pb-logo.gif";
+                image.src = "/icons/pb-ledger.svg";
             });
         }
         return logoPromise;
@@ -113,15 +114,14 @@
         }).format(date);
     }
 
-    function drawField(doc, label, value, x, y, maxWidth) {
-        const prefix = `${label}: `;
-        doc.setFont("helvetica", "bold");
-        doc.text(prefix, x, y);
-        const valueX = x + doc.getTextWidth(prefix);
+    function drawInvoicePair(doc, label, value, x, y, width, valueColor) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(102, 119, 134);
+        doc.text(label, x, y);
         doc.setFont("NotoSans", "normal");
-        const lines = doc.splitTextToSize(String(value || "—"), Math.max(10, maxWidth - (valueX - x)));
-        doc.text(lines, valueX, y);
-        return lines.length;
+        doc.setTextColor(...valueColor);
+        doc.text(String(value || "—"), x + width, y, { align: "right" });
     }
 
     async function download(bill) {
@@ -137,122 +137,215 @@
 
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 15;
+        const margin = 18;
+        const contentWidth = pageWidth - margin * 2;
+        const ink = [25, 39, 58];
+        const muted = [102, 119, 134];
+        const line = [215, 224, 231];
+        const brand = [20, 122, 85];
+        const brandDark = [16, 59, 45];
+        const pale = [246, 249, 250];
+        const gold = [226, 182, 78];
+        const amber = [170, 82, 37];
+        const amount = Number(bill.total);
+        const calculatedTotal = bill.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const total = Number.isFinite(amount) ? amount : calculatedTotal;
+        const paidValue = Number(bill.paid ?? 0);
+        const paid = Number.isFinite(paidValue) ? paidValue : 0;
+        const dueValue = Number(bill.due);
+        const due = Number.isFinite(dueValue) ? dueValue : total - paid;
         doc.setProperties({
             title: `${shopInfo.name} - Bill ${bill.billNo}`,
             subject: `Bill ${bill.billNo}`,
         });
-        doc.addImage(logo, "PNG", pageWidth / 2 - 18, 8, 36, 20);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(16);
-        doc.setTextColor(24, 33, 58);
-        doc.text(shopInfo.name, pageWidth / 2, 34, { align: "center" });
-        doc.setFontSize(10);
-        doc.text(shopInfo.business, pageWidth / 2, 40, { align: "center" });
-        doc.setFont("NotoSans", "normal");
-        doc.setFontSize(9);
-        doc.text(shopInfo.address, pageWidth / 2, 45, { align: "center" });
-        doc.text(`Mobile: ${shopInfo.mobile}`, pageWidth / 2, 50, { align: "center" });
-        doc.setDrawColor(60, 65, 75);
-        doc.setLineWidth(0.35);
-        doc.line(margin, 56, pageWidth - margin, 56);
 
-        const halfWidth = pageWidth / 2 - margin - 5;
-        const rightX = pageWidth / 2 + 5;
-        const rightWidth = pageWidth - margin - rightX;
-        drawField(doc, "Bill No", bill.billNo, margin, 65, halfWidth);
-        drawField(doc, "Date", dateLabel(bill.billDate), margin, 72, halfWidth);
-        drawField(doc, "Customer", bill.customerName, rightX, 65, rightWidth);
-        drawField(doc, "Mobile", bill.customerMobile, rightX, 72, rightWidth);
-        const addressLines = drawField(doc, "Address", bill.customerAddress, rightX, 79, rightWidth);
-        const dueY = 79 + Math.max(1, addressLines) * 6;
-        drawField(doc, "Payment Due Date", dateLabel(bill.dueDate), rightX, dueY, rightWidth);
+        doc.setDrawColor(...brand);
+        doc.setLineWidth(1.1);
+        doc.line(margin, 12, pageWidth - margin, 12);
+        doc.setDrawColor(...gold);
+        doc.setLineWidth(0.35);
+        doc.line(margin, 14, pageWidth - margin, 14);
+        doc.addImage(logo, "PNG", margin, 19, 17, 17);
+        doc.setTextColor(...ink);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        doc.text(shopInfo.name, margin + 22, 24);
+        doc.setTextColor(...brand);
+        doc.setFontSize(8);
+        doc.text(shopInfo.business.toUpperCase(), margin + 22, 30);
+        doc.setFont("NotoSans", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.text(shopInfo.address, margin + 22, 35);
+        doc.text(`Mobile: ${shopInfo.mobile}`, margin + 22, 40);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...ink);
+        doc.setFontSize(20);
+        doc.text("INVOICE", pageWidth - margin, 24, { align: "right" });
+        doc.setFontSize(9);
+        doc.setTextColor(...brand);
+        doc.text(`Bill No: ${bill.billNo}`, pageWidth - margin, 32, { align: "right" });
+        doc.setDrawColor(...line);
+        doc.setLineWidth(0.35);
+        doc.line(margin, 47, pageWidth - margin, 47);
+
+        const metaY = 53;
+        const leftWidth = contentWidth / 2;
+        const rightX = margin + leftWidth;
+        const addressWidth = leftWidth - 8;
+        doc.setFont("NotoSans", "normal");
+        doc.setFontSize(8);
+        const addressLines = doc.splitTextToSize(String(bill.customerAddress || "—"), addressWidth);
+        const phoneOffset = 20 + addressLines.length * 4.2 + 1;
+        const metaHeight = Math.max(34, phoneOffset + 5);
+        doc.setFillColor(...pale);
+        doc.setDrawColor(...line);
+        doc.roundedRect(margin, metaY, contentWidth, metaHeight, 1.5, 1.5, "FD");
+        doc.line(rightX, metaY, rightX, metaY + metaHeight);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.text("BILL TO", margin + 4, metaY + 6);
+        doc.text("INVOICE DETAILS", rightX + 4, metaY + 6);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...ink);
+        doc.text(String(bill.customerName || "—"), margin + 4, metaY + 14);
+        doc.setFont("NotoSans", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...ink);
+        doc.text(addressLines, margin + 4, metaY + 20);
+        doc.text(`Mobile: ${bill.customerMobile || "—"}`, margin + 4, metaY + phoneOffset);
+
+        const detailWidth = leftWidth - 8;
+        drawInvoicePair(doc, "Bill No.", bill.billNo, rightX + 4, metaY + 14, detailWidth - 4, ink);
+        drawInvoicePair(doc, "Bill Date", dateLabel(bill.billDate), rightX + 4, metaY + 21, detailWidth - 4, ink);
+        drawInvoicePair(doc, "Payment Due Date", dateLabel(bill.dueDate), rightX + 4, metaY + 28, detailWidth - 4, amber);
 
         doc.autoTable({
-            startY: Math.max(92, dueY + 8),
-            margin: { left: margin, right: margin, top: 16, bottom: 58 },
-            head: [["#", "Code", "Product / Details", "IMEI No.", "Amount"]],
+            startY: metaY + metaHeight + 6,
+            margin: { left: margin, right: margin, top: 18, bottom: 52 },
+            head: [["#", "PRODUCT NAME", "PRODUCT CODE", "IMEI NUMBER", "AMOUNT (₹)"]],
             body: bill.items.map((item, index) => [
                 String(index + 1),
-                item.productCode || "—",
                 item.productName || "—",
+                item.productCode || "—",
                 item.imei || "—",
                 currency.format(Number(item.amount) || 0),
             ]),
-            theme: "plain",
+            theme: "grid",
             styles: {
                 font: "NotoSans",
                 fontStyle: "normal",
-                fontSize: 8,
-                cellPadding: 2.4,
+                fontSize: 7.8,
+                cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 2.5 },
                 overflow: "linebreak",
-                lineColor: [224, 227, 233],
-                lineWidth: { bottom: 0.15 },
-                textColor: [24, 33, 58],
+                lineColor: line,
+                lineWidth: 0.15,
+                textColor: ink,
+                valign: "middle",
             },
             headStyles: {
-                fillColor: [245, 246, 251],
-                textColor: [24, 33, 58],
-                font: "helvetica",
-                fontStyle: "bold",
-                lineWidth: { bottom: 0.2 },
+                fillColor: brandDark,
+                textColor: [255, 255, 255],
+                font: "NotoSans",
+                fontStyle: "normal",
+                fontSize: 7.5,
+                lineColor: brand,
+                lineWidth: 0.45,
+            },
+            alternateRowStyles: {
+                fillColor: pale,
             },
             columnStyles: {
-                0: { cellWidth: 9, halign: "center" },
-                1: { cellWidth: 29 },
-                3: { cellWidth: 43 },
-                4: { cellWidth: 31, halign: "right" },
+                0: { cellWidth: 10, halign: "center" },
+                1: { cellWidth: 59 },
+                2: { cellWidth: 28, font: "helvetica", fontStyle: "bold" },
+                3: { cellWidth: 42, font: "courier", fontSize: 7.2 },
+                4: { cellWidth: 35, halign: "right" },
             },
         });
 
-        const amountWords = amountInWords(bill.total);
-        const amountWordsLines = doc.splitTextToSize(amountWords, pageWidth - margin * 2 - 39);
-        const amountWordsHeight = Math.max(12, amountWordsLines.length * 4 + 5);
-        let totalsY = doc.lastAutoTable.finalY + 8;
-        const summaryHeight = 17 + 5 + amountWordsHeight + 20;
-        if (totalsY + summaryHeight > pageHeight - margin) {
+        const wordsWidth = 94;
+        const totalsWidth = contentWidth - wordsWidth - 5;
+        const totalsX = margin + wordsWidth + 5;
+        const amountWordsLines = doc.splitTextToSize(amountInWords(total), wordsWidth - 10);
+        const wordsHeight = Math.max(17, 10 + amountWordsLines.length * 4.2);
+        let summaryY = doc.lastAutoTable.finalY + 7;
+        if (summaryY + 53 > pageHeight - 22) {
             doc.addPage();
-            totalsY = margin + 10;
+            summaryY = margin + 8;
         }
 
-        const amountX = pageWidth - margin;
-        doc.setTextColor(24, 33, 58);
-        doc.setFont("NotoSans", "normal");
-        doc.setFontSize(9);
-        doc.text("Total", amountX - 40, totalsY, { align: "right" });
-        doc.text(currency.format(Number(bill.total) || 0), amountX, totalsY, { align: "right" });
-        doc.text("Paid", amountX - 40, totalsY + 7, { align: "right" });
-        doc.text(currency.format(Number(bill.paid) || 0), amountX, totalsY + 7, { align: "right" });
+        doc.setFillColor(...pale);
+        doc.rect(margin, summaryY, wordsWidth, wordsHeight, "F");
+        doc.setFillColor(...brand);
+        doc.rect(margin, summaryY, 1.2, wordsHeight, "F");
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text("Due", amountX - 40, totalsY + 16, { align: "right" });
+        doc.setFontSize(7.5);
+        doc.setTextColor(...muted);
+        doc.text("AMOUNT IN WORDS", margin + 4, summaryY + 5.5);
         doc.setFont("NotoSans", "normal");
-        doc.setFontSize(14);
-        doc.text(currency.format(Number(bill.due) || 0), amountX, totalsY + 16, { align: "right" });
+        doc.setFontSize(8.5);
+        doc.setTextColor(...ink);
+        doc.text(amountWordsLines, margin + 4, summaryY + 11);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+        doc.text("Total Quantity:", margin, summaryY + wordsHeight + 6);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...ink);
+        doc.text(`${bill.items.length} Units`, margin + 24, summaryY + wordsHeight + 6);
 
-        const wordsY = totalsY + 23;
-        doc.setDrawColor(214, 218, 225);
+        doc.setDrawColor(...line);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(totalsX, summaryY, totalsWidth, 27, "FD");
+        doc.setFont("NotoSans", "normal");
+        doc.setFontSize(8.5);
+        doc.setTextColor(...muted);
+        doc.text("Total", totalsX + 4, summaryY + 6);
+        doc.setTextColor(...ink);
+        doc.text(currency.format(total), totalsX + totalsWidth - 4, summaryY + 6, { align: "right" });
+        doc.setDrawColor(...line);
+        doc.line(totalsX, summaryY + 9, totalsX + totalsWidth, summaryY + 9);
+        doc.setTextColor(...muted);
+        doc.text("Paid", totalsX + 4, summaryY + 15);
+        doc.setTextColor(...ink);
+        doc.text(currency.format(paid), totalsX + totalsWidth - 4, summaryY + 15, { align: "right" });
+        doc.line(totalsX, summaryY + 18, totalsX + totalsWidth, summaryY + 18);
+        doc.setFillColor(...brandDark);
+        doc.rect(totalsX, summaryY + 18, totalsWidth, 9, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text("Balance Due", totalsX + 4, summaryY + 24);
+        doc.setFont("NotoSans", "normal");
+        doc.text(currency.format(due), totalsX + totalsWidth - 4, summaryY + 24, { align: "right" });
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7.5);
+        doc.setTextColor(...ink);
+        doc.text(`For ${shopInfo.name}`, totalsX + totalsWidth, summaryY + 35, { align: "right" });
+        doc.setDrawColor(...muted);
         doc.setLineWidth(0.25);
-        doc.roundedRect(margin, wordsY, pageWidth - margin * 2, amountWordsHeight, 2, 2, "S");
+        doc.line(totalsX + totalsWidth - 50, summaryY + 45, totalsX + totalsWidth, summaryY + 45);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text("Amount in Words:", margin + 3, wordsY + 7);
-        const labelWidth = doc.getTextWidth("Amount in Words: ");
-        doc.setFont("NotoSans", "normal");
-        doc.text(amountWordsLines, margin + 3 + labelWidth, wordsY + 7);
+        doc.setFontSize(7.5);
+        doc.setTextColor(...ink);
+        doc.text("Authorised Signature", totalsX + totalsWidth, summaryY + 50, { align: "right" });
 
-        const signatureY = wordsY + amountWordsHeight + 12;
-        doc.line(pageWidth - margin - 50, signatureY, pageWidth - margin, signatureY);
-        doc.setFont("NotoSans", "normal");
-        doc.setFontSize(8);
-        doc.text("Authorised Signature", pageWidth - margin - 25, signatureY + 5, { align: "center" });
-
-        for (let page = 1; page <= doc.getNumberOfPages(); page++) {
+        const pageCount = doc.getNumberOfPages();
+        for (let page = 1; page <= pageCount; page++) {
             doc.setPage(page);
+            doc.setDrawColor(...line);
+            doc.setLineWidth(0.25);
+            doc.line(margin, pageHeight - 17, pageWidth - margin, pageHeight - 17);
             doc.setFont("NotoSans", "normal");
             doc.setFontSize(7);
-            doc.setTextColor(120, 129, 152);
-            doc.text(`Page ${page}`, pageWidth - margin, pageHeight - 7, { align: "right" });
+            doc.setTextColor(...muted);
+            doc.text(`${shopInfo.name} · ${shopInfo.business}`, margin, pageHeight - 10);
+            doc.text(`Page ${page} of ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: "right" });
         }
         const safeBillNo = String(bill.billNo || "bill").replace(/[^\w.-]+/g, "-");
         doc.save(`pb-ledger-${safeBillNo}.pdf`);

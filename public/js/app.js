@@ -18,6 +18,8 @@ let previewBillData = null;
 let savedBillData = null;
 let confirmResolver = null;
 const themeToggle = document.querySelector("#theme-toggle");
+const sidebar = document.querySelector("#app-sidebar");
+const sidebarToggle = document.querySelector("#sidebar-toggle");
 
 function setTheme(theme, persist = false) {
     const dark = theme === "dark";
@@ -35,6 +37,21 @@ function setTheme(theme, persist = false) {
 setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
 themeToggle.addEventListener("click", () => {
     setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+});
+
+function setSidebarVisible(visible) {
+    document.querySelector(".app").classList.toggle("sidebar-collapsed", !visible);
+    sidebar.inert = !visible;
+    sidebar.setAttribute("aria-hidden", String(!visible));
+    sidebarToggle.setAttribute("aria-expanded", String(visible));
+    const label = `${visible ? "Hide" : "Show"} sidebar`;
+    sidebarToggle.setAttribute("aria-label", label);
+    sidebarToggle.title = label;
+    sidebarToggle.innerHTML = `<i class="bi ${visible ? "bi-layout-sidebar-inset" : "bi-layout-sidebar"}" aria-hidden="true"></i>`;
+}
+
+sidebarToggle.addEventListener("click", () => {
+    setSidebarVisible(sidebarToggle.getAttribute("aria-expanded") !== "true");
 });
 
 async function api(path, options = {}) {
@@ -55,10 +72,38 @@ async function api(path, options = {}) {
 function setMessage(text, kind = "") {
     message.textContent = text;
     message.className = `form-message${kind ? ` ${kind}` : ""}`;
+    message.setAttribute("role", kind === "error" ? "alert" : "status");
 }
 
 function fieldIsValid(field) {
     return field.validity.valid && !(field.required && !String(field.value).trim());
+}
+
+function validateItemRow(row, focusInvalid = true) {
+    const fields = [...row.querySelectorAll("input, select, textarea")].filter((field) => field.willValidate);
+    const invalidFields = fields.filter((field) => !fieldIsValid(field));
+    for (const field of fields) {
+        if (invalidFields.includes(field)) field.setAttribute("aria-invalid", "true");
+        else field.removeAttribute("aria-invalid");
+    }
+
+    let error = row.querySelector(".item-validation");
+    if (!error) {
+        error = document.createElement("p");
+        error.className = "item-validation";
+        error.setAttribute("role", "alert");
+        row.append(error);
+    }
+    error.id = `${fields[0]?.id || "item"}-error`;
+    error.textContent = "Complete all required item fields using valid values.";
+    error.hidden = invalidFields.length === 0;
+    for (const field of fields) {
+        if (error.hidden) field.removeAttribute("aria-describedby");
+        else field.setAttribute("aria-describedby", error.id);
+    }
+
+    if (focusInvalid && invalidFields[0]) invalidFields[0].focus();
+    return invalidFields.length === 0;
 }
 
 function validateFormFields(target, focusInvalid = true, markAttempt = true) {
@@ -93,17 +138,7 @@ function validateFormFields(target, focusInvalid = true, markAttempt = true) {
     }
 
     for (const row of rows) {
-        const invalid = [...row.querySelectorAll("input, select, textarea")]
-            .some((field) => field.willValidate && !fieldIsValid(field));
-        let error = row.querySelector(".item-validation");
-        if (!error) {
-            error = document.createElement("p");
-            error.className = "item-validation";
-            error.setAttribute("role", "alert");
-            row.append(error);
-        }
-        error.textContent = "Enter a product name and an amount greater than zero.";
-        error.hidden = !invalid;
+        validateItemRow(row, false);
     }
 
     if (focusInvalid && firstInvalid) firstInvalid.focus();
@@ -140,6 +175,7 @@ function setOperationFeedback(selector, text, kind = "") {
     const target = document.querySelector(selector);
     target.textContent = text;
     target.className = `operation-feedback${kind ? ` ${kind}` : ""}`;
+    target.setAttribute("role", kind === "error" ? "alert" : "status");
 }
 
 enableLiveValidation(form);
@@ -210,9 +246,11 @@ function setNavigation(page) {
     if (page === "customers") {
         loadCustomerDirectory(document.querySelector("#customer-search").value.trim());
     }
+    /* Product page navigation is paused; retain this route for later restoration.
     if (page === "products") {
         loadProductDirectory(document.querySelector("#product-search").value.trim());
     }
+    */
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -223,22 +261,23 @@ function itemInput(field, placeholder, type = "text") {
     input.dataset.field = field;
     input.placeholder = placeholder;
     input.setAttribute("aria-label", placeholder);
+    input.required = true;
+    input.setAttribute("aria-required", "true");
+    if (field === "productName") input.maxLength = 100;
+    if (field === "productCode") input.maxLength = 20;
     if (field === "amount") {
         input.min = "1000";
         input.max = "500000";
         input.step = "0.01";
         input.inputMode = "decimal";
-        input.required = true;
-        input.setAttribute("aria-required", "true");
     }
     if (field === "imei") {
         input.minLength = 15;
         input.maxLength = 15;
         input.inputMode = "numeric";
         input.pattern = "[0-9]{15}";
-        input.required = true;
-        input.setAttribute("aria-required", "true");
     }
+    /*
     if (field === "productName") {
         const select = document.createElement("select");
         select.className = "form-select";
@@ -262,27 +301,31 @@ function itemInput(field, placeholder, type = "text") {
     if (field === "productCode") {
         input.maxLength = 20;
         input.readOnly = true;
-        input.required = true;
-        input.setAttribute("aria-required", "true");
         input.setAttribute("aria-label", "Selected product code");
     }
     if (field === "imei") {
         input.maxLength = 15;
         input.pattern = "[0-9]{15}";
     }
+    */
     input.addEventListener("input", updateTotals);
     return input;
 }
 
-function addItem(values = {}) {
+function addItem(values = {}, editingIndex = null) {
+    const existingRow = itemRows.firstElementChild;
+    if (existingRow) {
+        existingRow.querySelector("input")?.focus();
+        return;
+    }
+
     const row = document.createElement("div");
     row.className = "item-row";
     const addField = (field, label, control) => {
         const wrapper = document.createElement("div");
         wrapper.className = "item-field";
         const labelElement = document.createElement("label");
-        const index = itemRows.children.length + 1;
-        const controlId = `item-${Date.now()}-${index}-${field}`;
+        const controlId = `item-${Date.now()}-${field}`;
         labelElement.htmlFor = controlId;
         labelElement.textContent = label;
         control.id = controlId;
@@ -290,95 +333,59 @@ function addItem(values = {}) {
         row.append(wrapper);
     };
 
-    addField("productName", "Product *", itemInput("productName", "Select a product"));
-    addField("productCode", "Product code *", itemInput("productCode", "Auto-filled"));
-    addField("imei", "IMEI / serial *", itemInput("imei", "15 digits"));
+    addField("productName", "Product Name *", itemInput("productName", "Enter product name"));
+    addField("productCode", "Product Code *", itemInput("productCode", "Enter product code"));
+    addField("imei", "IMEI Number *", itemInput("imei", "15 digits"));
     addField("amount", "Amount (₹) *", itemInput("amount", "0.00", "number"));
 
-    const code = row.querySelector('[data-field="productCode"]');
-    const name = row.querySelector('[data-field="productName"]');
-    const imei = row.querySelector('[data-field="imei"]');
-    const amount = row.querySelector('[data-field="amount"]');
-    code.value = values.productCode || "";
-    if (name.tagName === "SELECT") {
-        const matched = products.find((product) =>
-            product.name === values.productName
-            || (values.productCode && product.code === values.productCode),
-        );
-        name.value = matched ? String(matched.id) : "";
+    for (const field of ["productName", "productCode", "imei", "amount"]) {
+        row.querySelector(`[data-field="${field}"]`).value = values[field] ?? "";
     }
-    imei.value = values.imei || "";
-    amount.value = values.amount || "";
     const actions = document.createElement("div");
     actions.className = "draft-actions";
-    const accept = document.createElement("button");
-    accept.className = "draft-action accept";
-    accept.type = "button";
-    accept.setAttribute("aria-label", "Add item to table");
-    accept.title = "Add item";
-    accept.textContent = "✓";
-    accept.addEventListener("click", () => {
-        if (!name.value) {
-            name.setAttribute("aria-invalid", "true");
-            name.focus();
-            setMessage("Select a product for the item.", "error");
+    const save = document.createElement("button");
+    save.className = "draft-action accept";
+    save.type = "button";
+    save.setAttribute("aria-label", "Save item");
+    save.title = "Save item";
+    save.textContent = "✓";
+    save.addEventListener("click", () => {
+        if (!validateItemRow(row)) {
+            setMessage("Please complete all required item fields.", "error");
             return;
         }
-        if (!/^\d{15}$/.test(imei.value.trim())) {
-            imei.setAttribute("aria-invalid", "true");
-            imei.focus();
-            setMessage("IMEI / serial must be exactly 15 numeric digits.", "error");
-            return;
-        }
-        const itemAmount = Number(amount.value);
-        if (!Number.isFinite(itemAmount) || itemAmount < 1000 || itemAmount > 500000) {
-            amount.setAttribute("aria-invalid", "true");
-            amount.focus();
-            setMessage("Amount must be between ₹1,000 and ₹5,00,000.", "error");
-            return;
-        }
-        const product = products.find((entry) => String(entry.id) === name.value);
-        if (!product) {
-            name.setAttribute("aria-invalid", "true");
-            name.focus();
-            setMessage("Select an existing product.", "error");
-            return;
-        }
-        if (!product.code) {
-            code.setAttribute("aria-invalid", "true");
-            code.focus();
-            setMessage("The selected product must have a product code.", "error");
-            return;
-        }
-        addedItems.push({
-            productCode: product.code,
-            productName: product.name,
-            imei: imei.value.trim(),
-            amount: itemAmount,
-        });
+        const item = {
+            productName: row.querySelector('[data-field="productName"]').value.trim(),
+            productCode: row.querySelector('[data-field="productCode"]').value.trim(),
+            imei: row.querySelector('[data-field="imei"]').value.trim(),
+            amount: Number(row.querySelector('[data-field="amount"]').value),
+        };
+        if (editingIndex === null) addedItems.push(item);
+        else addedItems.splice(editingIndex, 1, item);
         row.remove();
         setMessage("");
         renderAddedItems();
         updateTotals();
-        updateItemLabels();
     });
-    const reject = document.createElement("button");
-    reject.className = "draft-action reject";
-    reject.type = "button";
-    reject.setAttribute("aria-label", "Remove item entry");
-    reject.title = "Cancel entry";
-    reject.textContent = "×";
-    reject.addEventListener("click", () => {
+    const cancel = document.createElement("button");
+    cancel.className = "draft-action reject";
+    cancel.type = "button";
+    cancel.setAttribute("aria-label", "Cancel item entry");
+    cancel.title = "Cancel item entry";
+    cancel.textContent = "×";
+    cancel.addEventListener("click", () => {
         row.remove();
-        updateItemLabels();
+        renderAddedItems();
         setMessage("");
     });
-    actions.append(accept, reject);
+    actions.append(save, cancel);
     row.append(actions);
     itemRows.append(row);
     updateTotals();
     updateItemLabels();
+    renderAddedItems();
     if (form.dataset.validationAttempted === "true") validateFormFields(form, false, false);
+    row.querySelector("input").focus();
 }
 
 function updateItemLabels() {
@@ -394,7 +401,7 @@ function renderAddedItems() {
     if (!addedItems.length) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 5;
+        cell.colSpan = 6;
         cell.className = "empty-state";
         cell.textContent = "No items added yet.";
         row.append(cell);
@@ -405,24 +412,28 @@ function renderAddedItems() {
     for (let index = 0; index < addedItems.length; index++) {
         const item = addedItems[index];
         const row = document.createElement("tr");
+        appendCell(row, String(index + 1));
         appendCell(row, item.productName);
-        appendCell(row, item.productCode || "—");
+        appendCell(row, item.productCode);
         appendCell(row, item.imei);
         appendCell(row, money(item.amount));
-        const actionCell = document.createElement("td");
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "remove-added-item";
-        remove.setAttribute("aria-label", `Delete ${item.productName}`);
-        remove.title = "Delete item";
-        remove.textContent = "×";
-        remove.addEventListener("click", () => {
-            addedItems.splice(index, 1);
-            renderAddedItems();
-            updateTotals();
-        });
-        actionCell.append(remove);
-        row.append(actionCell);
+        appendActions(row, [
+            { name: "edit", label: `Edit ${item.productName}`, onClick: () => addItem(item, index) },
+            {
+                name: "delete",
+                label: `Delete ${item.productName}`,
+                onClick: () => {
+                    addedItems.splice(index, 1);
+                    renderAddedItems();
+                    updateTotals();
+                },
+            },
+        ]);
+        if (itemRows.childElementCount > 0) {
+            row.querySelectorAll("button").forEach((button) => {
+                button.disabled = true;
+            });
+        }
         body.append(row);
     }
     updateItemLabels();
@@ -456,7 +467,7 @@ function createBillPrintHeader() {
     const header = document.createElement("header");
     header.className = "bill-print-header";
     const logo = document.createElement("img");
-    logo.src = "/pb-logo.gif";
+    logo.src = "/icons/pb-ledger.svg";
     logo.alt = "Pabitra's PB logo";
     const name = document.createElement("h3");
     name.textContent = window.BillPdf.shopInfo.name;
@@ -509,7 +520,7 @@ function showBillDetails(bill) {
     table.className = "preview-items";
     const head = document.createElement("thead");
     const headRow = document.createElement("tr");
-    for (const label of ["#", "Code", "Product / Details", "IMEI No.", "Amount"]) {
+    for (const label of ["#", "Product Name", "Product Code", "IMEI Number", "Amount (₹)"]) {
         const cell = document.createElement("th");
         cell.textContent = label;
         headRow.append(cell);
@@ -519,9 +530,9 @@ function showBillDetails(bill) {
     for (const [index, item] of bill.items.entries()) {
         const row = document.createElement("tr");
         appendCell(row, String(index + 1));
-        appendCell(row, item.productCode || "—");
         appendCell(row, item.productName);
-        appendCell(row, item.imei || "—");
+        appendCell(row, item.productCode);
+        appendCell(row, item.imei);
         appendCell(row, money(item.amount));
         body.append(row);
     }
@@ -837,22 +848,21 @@ function renderLatestEntries(target, entries, type, error) {
 }
 
 async function loadDashboardLists() {
-    const [customerResult, productResult] = await Promise.allSettled([
-        api("/api/customers"),
-        api("/api/products"),
-    ]);
+    const [customerResult] = await Promise.allSettled([api("/api/customers")]);
     renderLatestEntries(
         document.querySelector("#latest-customers"),
         customerResult.status === "fulfilled" ? customerResult.value : [],
         "customers",
         customerResult.status === "rejected" ? customerResult.reason.message : "",
     );
+    /*
     renderLatestEntries(
         document.querySelector("#latest-products"),
         productResult.status === "fulfilled" ? productResult.value : [],
         "products",
         productResult.status === "rejected" ? productResult.reason.message : "",
     );
+    */
 }
 
 async function loadBills(query = "") {
@@ -945,18 +955,16 @@ async function loadProductDirectory(query = "") {
 }
 
 async function loadLookups() {
-    const results = await Promise.all([
-        api("/api/customers"),
-        api("/api/products"),
-    ]);
-    customers = results[0];
-    products = results[1];
+    customers = await api("/api/customers");
     customerSelect.replaceChildren(new Option("Select a customer", ""));
     for (const customer of customers) {
         const detail = customer.mobile ? ` · ${customer.mobile}` : "";
         customerSelect.add(new Option(`${customer.name}${detail}`, String(customer.id)));
     }
+    /*
+    products = await api("/api/products");
     refreshItemProductOptions();
+    */
 }
 
 function refreshItemProductOptions() {
@@ -1003,7 +1011,6 @@ function resetForm() {
     customerSelect.value = "";
     selectCustomer();
     itemRows.replaceChildren();
-    addItem();
     const today = localDateISO();
     document.querySelector("#bill-date").value = today;
     document.querySelector("#bill-number").value = makeBillNumber();
@@ -1028,7 +1035,6 @@ async function editBill(billId) {
         itemRows.replaceChildren();
         addedItems = bill.items.map((item) => ({ ...item }));
         renderAddedItems();
-        addItem();
         document.querySelector("#create-title").textContent = `Edit bill ${bill.billNo}`;
         document.querySelector("#save-button").textContent = "Update bill";
         setMessage("");
@@ -1068,8 +1074,13 @@ function previewBill() {
         return;
     }
     const items = readItems();
-    if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
-        setMessage("Add at least one item and use ✓ to confirm it.", "error");
+    if (itemRows.childElementCount > 0) {
+        setMessage("Save or cancel the open item before previewing the bill.", "error");
+        itemRows.querySelector("input")?.focus();
+        return;
+    }
+    if (!items.length || items.some((item) => !item.productName || !item.productCode || !Number.isFinite(item.amount) || item.amount <= 0)) {
+        setMessage("Add at least one complete item to the bill.", "error");
         return;
     }
     if (items.some((item) => !/^\d{15}$/.test(item.imei))) {
@@ -1125,7 +1136,7 @@ function previewBill() {
     table.className = "preview-items";
     const head = document.createElement("thead");
     const headRow = document.createElement("tr");
-    for (const label of ["#", "Code", "Product / Details", "IMEI No.", "Amount"]) {
+    for (const label of ["#", "Product Name", "Product Code", "IMEI Number", "Amount (₹)"]) {
         const cell = document.createElement("th");
         cell.textContent = label;
         headRow.append(cell);
@@ -1135,9 +1146,9 @@ function previewBill() {
     for (const [index, item] of items.entries()) {
         const row = document.createElement("tr");
         appendCell(row, String(index + 1));
-        appendCell(row, item.productCode || "—");
         appendCell(row, item.productName);
-        appendCell(row, item.imei || "—");
+        appendCell(row, item.productCode);
+        appendCell(row, item.imei);
         appendCell(row, money(item.amount));
         body.append(row);
     }
@@ -1216,6 +1227,7 @@ document.querySelector("#customer-search").addEventListener("input", (event) => 
         250,
     );
 });
+/* Product catalog page controls are paused; keep handlers for later restoration.
 document.querySelector("#product-search").addEventListener("input", (event) => {
     window.clearTimeout(productSearchTimer);
     productSearchTimer = window.setTimeout(
@@ -1229,6 +1241,7 @@ document.querySelector("#new-customer-button").addEventListener("click", () => {
 document.querySelector("#new-product-button").addEventListener("click", () => {
     openDirectoryForm("product");
 });
+*/
 document.querySelectorAll("[data-close-dialog]").forEach((button) => {
     button.addEventListener("click", () => {
         document.querySelector(`#${button.dataset.closeDialog}`).close();
@@ -1273,9 +1286,14 @@ form.addEventListener("submit", async (event) => {
         setMessage("Please correct the highlighted fields.", "error");
         return;
     }
+    if (itemRows.childElementCount > 0) {
+        setMessage("Save or cancel the open item before saving the bill.", "error");
+        itemRows.querySelector("input")?.focus();
+        return;
+    }
     const items = readItems();
-    if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
-        setMessage("Add at least one item and use ✓ to confirm it.", "error");
+    if (!items.length || items.some((item) => !item.productName || !item.productCode || !Number.isFinite(item.amount) || item.amount <= 0)) {
+        setMessage("Add at least one complete item to the bill.", "error");
         return;
     }
     if (items.some((item) => !/^\d{15}$/.test(item.imei))) {
@@ -1348,4 +1366,4 @@ document.querySelector("#confirm-dialog").addEventListener("cancel", (event) => 
 
 resetForm();
 loadDashboard();
-loadLookups().catch((error) => setMessage(`Could not load customers and products: ${error.message}`, "error"));
+loadLookups().catch((error) => setMessage(`Could not load customers: ${error.message}`, "error"));
