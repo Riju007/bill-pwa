@@ -7,6 +7,11 @@
     <meta name="theme-color" content="#f5f6fb">
     <meta name="description" content="A simple, polished workspace for creating and tracking bills.">
     <title>Billwise | Billing workspace</title>
+    <link rel="icon" type="image/svg+xml" href="/icons/billwise.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="stylesheet" href="/vendor/bootstrap.min.css">
+    <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
     <script>
         (() => {
             const savedTheme = localStorage.getItem("billwise-theme");
@@ -153,8 +158,10 @@
 
         .nav-icon {
             width: 20px;
-            height: 20px;
             flex: 0 0 auto;
+            font-size: 18px;
+            line-height: 1;
+            text-align: center;
         }
 
         .sidebar-note {
@@ -228,10 +235,12 @@
             font-weight: 650;
         }
 
-        .theme-toggle svg {
+        .theme-toggle svg,
+        .theme-toggle .bi {
             width: 17px;
             height: 17px;
             flex: 0 0 auto;
+            font-size: 17px;
         }
 
         .theme-toggle-label {
@@ -367,9 +376,12 @@
             background: #fff0f1;
         }
 
-        .button svg {
+        .button svg,
+        .button .bi,
+        .table-add-item .bi {
             width: 17px;
             height: 17px;
+            line-height: 1;
         }
 
         .action-buttons {
@@ -400,9 +412,11 @@
             border-color: var(--red);
         }
 
-        .action-button svg {
+        .action-button svg,
+        .action-button .bi {
             width: 16px;
             height: 16px;
+            font-size: 16px;
         }
 
         .operation-feedback {
@@ -477,9 +491,11 @@
             background: var(--amber-soft);
         }
 
-        .stat-icon svg {
+        .stat-icon svg,
+        .stat-icon .bi {
             width: 19px;
             height: 19px;
+            font-size: 19px;
         }
 
         .stat-value {
@@ -803,9 +819,11 @@
             font-weight: 800;
         }
 
-        .table-add-item svg {
+        .table-add-item svg,
+        .table-add-item .bi {
             width: 18px;
             height: 18px;
+            font-size: 18px;
         }
 
         .item-row {
@@ -1100,6 +1118,23 @@
             font-size: 17px;
         }
 
+        .bill-output-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 22px 0;
+        }
+
+        .bill-output-feedback {
+            margin: 8px 22px 0;
+            color: var(--red);
+            font-size: 12px;
+        }
+
+        .bill-output-feedback:empty {
+            display: none;
+        }
+
         .dialog-body {
             display: grid;
             gap: 14px;
@@ -1266,7 +1301,7 @@
 
             .mobile-nav .nav-icon {
                 width: 19px;
-                height: 19px;
+                font-size: 19px;
             }
         }
 
@@ -1457,6 +1492,56 @@
             }
         }
 
+        @media print {
+            @page {
+                size: A4;
+                margin: 14mm;
+            }
+
+            body * {
+                visibility: hidden !important;
+            }
+
+            dialog[open],
+            dialog[open] * {
+                visibility: visible !important;
+            }
+
+            dialog[open] {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                max-width: none;
+                max-height: none;
+                overflow: visible;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .dialog-head {
+                padding: 0 0 8mm;
+                border: 0;
+            }
+
+            .dialog-head button,
+            .bill-output-actions,
+            .bill-output-feedback {
+                display: none !important;
+            }
+
+            .preview-content {
+                padding: 0;
+            }
+
+            .preview-items tr,
+            .preview-meta > div,
+            .preview-total {
+                break-inside: avoid;
+            }
+        }
+
         :root[data-theme="dark"] {
             color-scheme: dark;
             --ink: #e5f1e8;
@@ -1636,23 +1721,23 @@
             <p class="nav-label">Workspace</p>
             <nav class="nav">
                 <button class="nav-button active" type="button" data-page="dashboard">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+                    <i class="nav-icon bi bi-grid-1x2-fill" aria-hidden="true"></i>
                     Overview
                 </button>
                 <button class="nav-button" type="button" data-page="create">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+                    <i class="nav-icon bi bi-plus-circle" aria-hidden="true"></i>
                     Create a bill
                 </button>
                 <button class="nav-button" type="button" data-page="bills">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h7"/></svg>
+                    <i class="nav-icon bi bi-receipt" aria-hidden="true"></i>
                     All bills
                 </button>
                 <button class="nav-button" type="button" data-page="customers">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3.5 3.5 0 0 1 0 6.8M18 14a5.8 5.8 0 0 1 3.5 5.5"/></svg>
+                    <i class="nav-icon bi bi-people" aria-hidden="true"></i>
                     Customers
                 </button>
                 <button class="nav-button" type="button" data-page="products">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg>
+                    <i class="nav-icon bi bi-box-seam" aria-hidden="true"></i>
                     Products
                 </button>
             </nav>
@@ -1672,7 +1757,7 @@
                 <div class="topbar-actions">
                     <span class="today">Pabitra Online Service</span>
                     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg>
+                        <i class="bi bi-moon" aria-hidden="true"></i>
                         <span class="theme-toggle-label">Dark theme</span>
                     </button>
                     <span class="avatar" aria-label="Demo shop account">PB</span>
@@ -1687,8 +1772,8 @@
                             <h1 id="dashboard-title">Good to see you</h1>
                             <p class="subtitle">Here is a quick look at your billing activity.</p>
                         </div>
-                        <button class="button primary" type="button" data-go="create">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        <button class="button primary btn" type="button" data-go="create">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
                             Create new bill
                         </button>
                     </div>
@@ -1698,7 +1783,7 @@
                             <div>
                                 <div class="stat-top">
                                     <span class="stat-label">Total billed</span>
-                                    <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19V5M4 19h17"/><path d="m7 15 4-4 3 2 6-7"/></svg></span>
+                                    <span class="stat-icon"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i></span>
                                 </div>
                                 <p class="stat-value" id="stat-sales">—</p>
                                 <p class="stat-foot">Across all saved bills</p>
@@ -1708,7 +1793,7 @@
                             <div>
                                 <div class="stat-top">
                                     <span class="stat-label">Awaiting payment</span>
-                                    <span class="stat-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                                    <span class="stat-icon amber"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
                                 </div>
                                 <p class="stat-value" id="stat-due">—</p>
                                 <p class="stat-foot">Outstanding balance</p>
@@ -1718,7 +1803,7 @@
                             <div>
                                 <div class="stat-top">
                                     <span class="stat-label">Bills created</span>
-                                    <span class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h5"/></svg></span>
+                                    <span class="stat-icon green"><i class="bi bi-receipt-cutoff" aria-hidden="true"></i></span>
                                 </div>
                                 <p class="stat-value" id="stat-count">—</p>
                                 <p class="stat-foot">All time</p>
@@ -1794,15 +1879,15 @@
                                     <div class="field-grid">
                                         <div class="field">
                                             <label for="bill-number">Bill number <span class="required-mark" aria-hidden="true">*</span></label>
-                                            <input id="bill-number" name="billNo" maxlength="50" required>
+                                            <input class="form-control" id="bill-number" name="billNo" maxlength="50" required>
                                         </div>
                                         <div class="field">
                                             <label for="bill-date">Bill date <span class="required-mark" aria-hidden="true">*</span></label>
-                                            <input id="bill-date" name="billDate" type="date" required>
+                                            <input class="form-control" id="bill-date" name="billDate" type="date" required>
                                         </div>
                                         <div class="field">
                                             <label for="due-date">Payment due date <span class="field-hint">(optional)</span></label>
-                                            <input id="due-date" name="dueDate" type="date">
+                                            <input class="form-control" id="due-date" name="dueDate" type="date">
                                         </div>
                                     </div>
                                 </section>
@@ -1818,7 +1903,7 @@
                                     <div class="field-grid">
                                         <div class="field full">
                                             <label for="customer-select">Customer <span class="required-mark" aria-hidden="true">*</span></label>
-                                            <select id="customer-select" name="customerId" required>
+                                            <select class="form-select" id="customer-select" name="customerId" required>
                                                 <option value="">Select a customer</option>
                                             </select>
                                         </div>
@@ -1839,7 +1924,7 @@
                                     <div class="items-head">
                                         <span class="items-head-title">0 items</span>
                                         <button class="table-add-item" id="add-item" type="button" title="Add item" aria-label="Add item">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
                                             Add item
                                         </button>
                                     </div>
@@ -1879,7 +1964,7 @@
                                 </div>
                                 <div class="summary-paid">
                                     <label for="paid-amount">Paid</label>
-                                    <input id="paid-amount" name="paid" type="number" min="0" step="0.01" value="0" inputmode="decimal">
+                                    <input class="form-control" id="paid-amount" name="paid" type="number" min="0" step="0.01" value="0" inputmode="decimal">
                                 </div>
                                 <div class="summary-line due">
                                     <span>Due</span>
@@ -1887,8 +1972,8 @@
                                 </div>
                                 <hr class="summary-divider">
                                 <div class="summary-actions">
-                                    <button class="button secondary" id="preview-button" type="button">Preview bill</button>
-                                    <button class="button primary" id="save-button" type="submit">Save bill</button>
+                                    <button class="button secondary btn" id="preview-button" type="button">Preview bill</button>
+                                    <button class="button primary btn" id="save-button" type="submit">Save bill</button>
                                     <button class="button danger" id="clear-button" type="button">Clear form</button>
                                 </div>
                                 <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
@@ -1907,7 +1992,7 @@
                         <div class="list-toolbar">
                             <label class="search-box">
                                 <span class="field-hint" hidden>Search bills</span>
-                                <input id="bill-search" type="search" placeholder="Search bills…" aria-label="Search bills">
+                                <input class="form-control" id="bill-search" type="search" placeholder="Search bills…" aria-label="Search bills">
                             </label>
                         </div>
                     </div>
@@ -1944,10 +2029,10 @@
                         </div>
                         <div class="list-toolbar directory-toolbar">
                             <label class="search-box">
-                                <input id="customer-search" type="search" placeholder="Search customers…" aria-label="Search customers">
+                                <input class="form-control" id="customer-search" type="search" placeholder="Search customers…" aria-label="Search customers">
                             </label>
-                            <button class="button primary" id="new-customer-button" type="button">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+                            <button class="button primary btn" id="new-customer-button" type="button">
+                                <i class="bi bi-person-plus" aria-hidden="true"></i>
                                 New customer
                             </button>
                         </div>
@@ -1986,10 +2071,10 @@
                         </div>
                         <div class="list-toolbar directory-toolbar">
                             <label class="search-box">
-                                <input id="product-search" type="search" placeholder="Search products…" aria-label="Search products">
+                                <input class="form-control" id="product-search" type="search" placeholder="Search products…" aria-label="Search products">
                             </label>
-                            <button class="button primary" id="new-product-button" type="button">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+                            <button class="button primary btn" id="new-product-button" type="button">
+                                <i class="bi bi-box-seam" aria-hidden="true"></i>
                                 New product
                             </button>
                         </div>
@@ -2022,23 +2107,23 @@
 
     <nav class="mobile-nav" aria-label="Main navigation">
         <button class="nav-button active" type="button" data-page="dashboard">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>
+            <i class="nav-icon bi bi-grid-1x2-fill" aria-hidden="true"></i>
             Home
         </button>
         <button class="nav-button" type="button" data-page="create">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/></svg>
+            <i class="nav-icon bi bi-plus-circle" aria-hidden="true"></i>
             New bill
         </button>
         <button class="nav-button" type="button" data-page="bills">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v6h5M10 13h7M10 17h7"/></svg>
+            <i class="nav-icon bi bi-receipt" aria-hidden="true"></i>
             Bills
         </button>
         <button class="nav-button" type="button" data-page="customers">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3.5 3.5 0 0 1 0 6.8M18 14a5.8 5.8 0 0 1 3.5 5.5"/></svg>
+            <i class="nav-icon bi bi-people" aria-hidden="true"></i>
             Customers
         </button>
         <button class="nav-button" type="button" data-page="products">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg>
+            <i class="nav-icon bi bi-box-seam" aria-hidden="true"></i>
             Products
         </button>
     </nav>
@@ -2048,6 +2133,11 @@
             <h2 id="preview-title">Bill preview</h2>
             <button class="button ghost" id="close-preview" type="button" aria-label="Close preview">Close</button>
         </div>
+        <div class="bill-output-actions">
+            <button class="button secondary btn" id="print-preview" type="button"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+            <button class="button primary btn" id="download-preview" type="button"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</button>
+        </div>
+        <p class="bill-output-feedback" id="preview-feedback" role="status" aria-live="polite"></p>
         <div class="preview-content" id="preview-content"></div>
     </dialog>
 
@@ -2056,6 +2146,11 @@
             <h2 id="bill-detail-title">Bill details</h2>
             <button class="button ghost" id="close-bill-details" type="button" aria-label="Close bill details">Close</button>
         </div>
+        <div class="bill-output-actions">
+            <button class="button secondary btn" id="print-saved-bill" type="button"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+            <button class="button primary btn" id="download-saved-bill" type="button"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</button>
+        </div>
+        <p class="bill-output-feedback" id="bill-detail-feedback" role="status" aria-live="polite"></p>
         <div class="preview-content" id="bill-detail-content" aria-live="polite"></div>
     </dialog>
 
@@ -2084,8 +2179,8 @@
             <p id="confirm-message"></p>
         </div>
         <div class="dialog-actions">
-            <button class="button secondary" id="cancel-confirm" type="button">Cancel</button>
-            <button class="button danger" id="accept-confirm" type="button">Delete permanently</button>
+            <button class="button secondary btn" id="cancel-confirm" type="button">Cancel</button>
+            <button class="button danger btn" id="accept-confirm" type="button">Delete permanently</button>
         </div>
     </dialog>
 
@@ -2098,25 +2193,25 @@
             <div class="dialog-body">
                 <div class="field">
                     <label for="new-customer-name">Customer name <span class="required-mark" aria-hidden="true">*</span></label>
-                    <input id="new-customer-name" name="name" maxlength="100" autocomplete="name" required>
+                    <input class="form-control" id="new-customer-name" name="name" maxlength="100" autocomplete="name" required>
                 </div>
                 <div class="field">
                     <label for="new-customer-code">Customer code <span class="field-hint">(optional)</span></label>
-                    <input id="new-customer-code" name="code" maxlength="20">
+                    <input class="form-control" id="new-customer-code" name="code" maxlength="20">
                 </div>
                 <div class="field">
                     <label for="new-customer-mobile">Mobile number <span class="field-hint">(optional)</span></label>
-                    <input id="new-customer-mobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number">
+                    <input class="form-control" id="new-customer-mobile" name="mobile" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number">
                 </div>
                 <div class="field">
                     <label for="new-customer-address">Address <span class="field-hint">(optional)</span></label>
-                    <textarea id="new-customer-address" name="address" maxlength="300" autocomplete="street-address"></textarea>
+                    <textarea class="form-control" id="new-customer-address" name="address" maxlength="300" autocomplete="street-address"></textarea>
                 </div>
                 <p class="dialog-message" id="customer-dialog-message" role="status" aria-live="polite"></p>
             </div>
             <div class="dialog-actions">
-                <button class="button secondary" type="button" data-close-dialog="customer-dialog">Cancel</button>
-                <button class="button primary" id="save-customer-button" type="submit">Save customer</button>
+                <button class="button secondary btn" type="button" data-close-dialog="customer-dialog">Cancel</button>
+                <button class="button primary btn" id="save-customer-button" type="submit">Save customer</button>
             </div>
         </form>
     </dialog>
@@ -2130,21 +2225,23 @@
             <div class="dialog-body">
                 <div class="field">
                     <label for="new-product-name">Product name <span class="required-mark" aria-hidden="true">*</span></label>
-                    <input id="new-product-name" name="name" maxlength="100" required>
+                    <input class="form-control" id="new-product-name" name="name" maxlength="100" required>
                 </div>
                 <div class="field">
                     <label for="new-product-code">Product code <span class="field-hint">(optional)</span></label>
-                    <input id="new-product-code" name="code" maxlength="20">
+                    <input class="form-control" id="new-product-code" name="code" maxlength="20">
                 </div>
                 <p class="dialog-message" id="product-dialog-message" role="status" aria-live="polite"></p>
             </div>
             <div class="dialog-actions">
-                <button class="button secondary" type="button" data-close-dialog="product-dialog">Cancel</button>
-                <button class="button primary" id="save-product-button" type="submit">Save product</button>
+                <button class="button secondary btn" type="button" data-close-dialog="product-dialog">Cancel</button>
+                <button class="button primary btn" id="save-product-button" type="submit">Save product</button>
             </div>
         </form>
     </dialog>
 
+    <script src="/vendor/jspdf.umd.min.js"></script>
+    <script src="/vendor/jspdf.plugin.autotable.min.js"></script>
     <script>
         const currency = new Intl.NumberFormat("en-IN", {
             style: "currency",
@@ -2162,6 +2259,9 @@
         let customerSearchTimer;
         let productSearchTimer;
         let editingBillId = null;
+        let previewBillData = null;
+        let savedBillData = null;
+        let pdfFontPromise;
         let confirmResolver = null;
         const themeToggle = document.querySelector("#theme-toggle");
 
@@ -2172,8 +2272,8 @@
             themeToggle.setAttribute("aria-label", `Switch to ${dark ? "light" : "dark"} theme`);
             themeToggle.title = `Switch to ${dark ? "light" : "dark"} theme`;
             themeToggle.innerHTML = dark
-                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><span class="theme-toggle-label">Light theme</span>'
-                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg><span class="theme-toggle-label">Dark theme</span>';
+                ? '<i class="bi bi-sun" aria-hidden="true"></i><span class="theme-toggle-label">Light theme</span>'
+                : '<i class="bi bi-moon" aria-hidden="true"></i><span class="theme-toggle-label">Dark theme</span>';
             document.querySelector('meta[name="theme-color"]').content = dark ? "#09120d" : "#f5f6fb";
             if (persist) localStorage.setItem("billwise-theme", dark ? "dark" : "light");
         }
@@ -2364,6 +2464,7 @@
 
         function itemInput(field, placeholder, type = "text") {
             const input = document.createElement("input");
+            input.className = "form-control";
             input.type = type;
             input.dataset.field = field;
             input.placeholder = placeholder;
@@ -2386,6 +2487,7 @@
             }
             if (field === "productName") {
                 const select = document.createElement("select");
+                select.className = "form-select";
                 select.dataset.field = "productName";
                 select.required = true;
                 select.setAttribute("aria-required", "true");
@@ -2597,6 +2699,9 @@
         }
 
         function showBillDetails(bill) {
+            savedBillData = bill;
+            document.querySelector("#bill-detail-feedback").textContent = "";
+            document.querySelector("#download-saved-bill").disabled = false;
             const content = document.querySelector("#bill-detail-content");
             content.replaceChildren();
 
@@ -2662,6 +2767,9 @@
         async function openBillDetails(billId) {
             const dialog = document.querySelector("#bill-detail-dialog");
             const content = document.querySelector("#bill-detail-content");
+            savedBillData = null;
+            document.querySelector("#download-saved-bill").disabled = true;
+            document.querySelector("#bill-detail-feedback").textContent = "";
             content.replaceChildren();
             const loading = document.createElement("p");
             loading.className = "latest-empty";
@@ -2690,6 +2798,93 @@
             }).format(date);
         }
 
+        async function getPdfFont() {
+            if (!pdfFontPromise) {
+                pdfFontPromise = fetch("/vendor/fonts/NotoSans-Variable.ttf").then(async (response) => {
+                    if (!response.ok) throw new Error(`Could not load the PDF font (${response.status})`);
+                    const bytes = new Uint8Array(await response.arrayBuffer());
+                    let binary = "";
+                    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+                        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+                    }
+                    return btoa(binary);
+                });
+            }
+            return pdfFontPromise;
+        }
+
+        async function downloadBillPdf(bill) {
+            if (!bill || !Array.isArray(bill.items) || bill.items.length === 0) {
+                throw new Error("This bill has no items to export.");
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ format: "a4", unit: "mm" });
+            const font = await getPdfFont();
+            doc.addFileToVFS("NotoSans.ttf", font);
+            doc.addFont("NotoSans.ttf", "NotoSans", "normal");
+            doc.setFont("NotoSans", "normal");
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 15;
+            doc.setFillColor(88, 70, 216);
+            doc.roundedRect(margin, 13, 11, 11, 2, 2, "F");
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(12);
+            doc.text("B", margin + 5.5, 20.5, { align: "center" });
+            doc.setTextColor(24, 33, 58);
+            doc.setFontSize(18);
+            doc.text("Billwise", margin + 16, 19);
+            doc.setFontSize(9);
+            doc.text("Pabitra Online Service", margin + 16, 25);
+            doc.setFontSize(11);
+            doc.text("BILL", pageWidth - margin, 18, { align: "right" });
+            doc.setFontSize(9);
+            doc.text(`Bill number: ${bill.billNo}`, margin, 38);
+            doc.text(`Bill date: ${dateLabel(bill.billDate)}`, margin, 44);
+            doc.text(`Due date: ${dateLabel(bill.dueDate)}`, margin, 50);
+            doc.text(`Customer: ${bill.customerName}`, pageWidth / 2, 38);
+            doc.text(`Mobile: ${bill.customerMobile || "—"}`, pageWidth / 2, 44);
+            const address = doc.splitTextToSize(`Address: ${bill.customerAddress || "—"}`, pageWidth / 2 - margin);
+            doc.text(address, pageWidth / 2, 50);
+
+            doc.autoTable({
+                startY: 62,
+                margin: { left: margin, right: margin, bottom: 20 },
+                head: [["Product", "Code", "IMEI / serial", "Amount"]],
+                body: bill.items.map((item) => [
+                    item.productName || "—",
+                    item.productCode || "—",
+                    item.imei || "—",
+                    money(item.amount),
+                ]),
+                styles: { font: "NotoSans", fontStyle: "normal", fontSize: 8, cellPadding: 2.5, overflow: "linebreak" },
+                headStyles: { fillColor: [32, 43, 73], textColor: [255, 255, 255], fontStyle: "normal" },
+                columnStyles: { 3: { halign: "right", cellWidth: 29 } },
+                didDrawPage: ({ pageNumber }) => {
+                    doc.setFont("NotoSans", "normal");
+                    doc.setFontSize(8);
+                    doc.setTextColor(120, 129, 152);
+                    doc.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 8, { align: "right" });
+                },
+            });
+
+            let totalsY = doc.lastAutoTable.finalY + 10;
+            if (totalsY + 22 > pageHeight - margin) {
+                doc.addPage();
+                totalsY = margin + 8;
+            }
+            doc.setTextColor(24, 33, 58);
+            doc.setFontSize(10);
+            doc.text(`Total: ${money(bill.total)}`, pageWidth - margin, totalsY, { align: "right" });
+            doc.text(`Paid: ${money(bill.paid)}`, pageWidth - margin, totalsY + 7, { align: "right" });
+            doc.setFontSize(12);
+            doc.text(`Balance due: ${money(bill.due)}`, pageWidth - margin, totalsY + 15, { align: "right" });
+
+            const safeBillNo = String(bill.billNo || "bill").replace(/[^\w.-]+/g, "-");
+            doc.save(`billwise-${safeBillNo}.pdf`);
+        }
+
         function paymentStatus(bill) {
             return Number(bill.due) <= 0 ? ["Paid", "paid"] : ["Payment due", "due"];
         }
@@ -2699,9 +2894,9 @@
             const group = document.createElement("div");
             group.className = "action-buttons";
             const icons = {
-                view: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>',
-                edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 5 5 5M4 20l4.2-.8L19 8.4 15.6 5 4.8 15.8 4 20Z"/></svg>',
-                delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>',
+                view: '<i class="bi bi-eye" aria-hidden="true"></i>',
+                edit: '<i class="bi bi-pencil" aria-hidden="true"></i>',
+                delete: '<i class="bi bi-trash" aria-hidden="true"></i>',
             };
             for (const action of actions) {
                 const button = document.createElement("button");
@@ -3196,16 +3391,32 @@
                 setMessage("Paid amount cannot be greater than the total.", "error");
                 return;
             }
+            const customer = customers.find((entry) => String(entry.id) === customerSelect.value);
+            previewBillData = {
+                billNo: document.querySelector("#bill-number").value.trim(),
+                billDate: document.querySelector("#bill-date").value,
+                dueDate: document.querySelector("#due-date").value || null,
+                customerName: customer?.name || "—",
+                customerMobile: customer?.mobile || null,
+                customerAddress: customer?.address || null,
+                items,
+                total,
+                paid,
+                due: total - paid,
+            };
+            document.querySelector("#preview-feedback").textContent = "";
+            document.querySelector("#download-preview").disabled = false;
             const container = document.querySelector("#preview-content");
             container.replaceChildren();
             const metadata = document.createElement("div");
             metadata.className = "preview-meta";
             const fields = [
-                ["Bill number", document.querySelector("#bill-number").value],
+                ["Bill number", previewBillData.billNo],
                 ["Bill date", dateLabel(document.querySelector("#bill-date").value)],
-                ["Customer", customers.find((entry) => String(entry.id) === customerSelect.value)?.name || "—"],
-                ["Mobile", customers.find((entry) => String(entry.id) === customerSelect.value)?.mobile || "—"],
-                ["Address", customers.find((entry) => String(entry.id) === customerSelect.value)?.address || "—"],
+                ["Payment due date", dateLabel(previewBillData.dueDate)],
+                ["Customer", previewBillData.customerName],
+                ["Mobile", previewBillData.customerMobile || "—"],
+                ["Address", previewBillData.customerAddress || "—"],
             ];
             for (const [label, value] of fields) {
                 const block = document.createElement("div");
@@ -3262,6 +3473,34 @@
         document.querySelector("#preview-button").addEventListener("click", previewBill);
         document.querySelector("#close-preview").addEventListener("click", () => {
             document.querySelector("#preview-dialog").close();
+        });
+        document.querySelector("#print-preview").addEventListener("click", () => window.print());
+        document.querySelector("#print-saved-bill").addEventListener("click", () => window.print());
+        document.querySelector("#download-preview").addEventListener("click", async (event) => {
+            const button = event.currentTarget;
+            const feedback = document.querySelector("#preview-feedback");
+            button.disabled = true;
+            feedback.textContent = "";
+            try {
+                await downloadBillPdf(previewBillData);
+            } catch (error) {
+                feedback.textContent = `Could not create PDF: ${error.message}`;
+            } finally {
+                button.disabled = false;
+            }
+        });
+        document.querySelector("#download-saved-bill").addEventListener("click", async (event) => {
+            const button = event.currentTarget;
+            const feedback = document.querySelector("#bill-detail-feedback");
+            button.disabled = true;
+            feedback.textContent = "";
+            try {
+                await downloadBillPdf(savedBillData);
+            } catch (error) {
+                feedback.textContent = `Could not create PDF: ${error.message}`;
+            } finally {
+                button.disabled = !savedBillData;
+            }
         });
         document.querySelector("#close-bill-details").addEventListener("click", () => {
             document.querySelector("#bill-detail-dialog").close();
