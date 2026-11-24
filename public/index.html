@@ -1125,6 +1125,43 @@
             padding: 12px 22px 0;
         }
 
+        .bill-print-header {
+            display: none;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .bill-print-header img {
+            display: block;
+            width: 150px;
+            max-height: 65px;
+            margin: 0 auto 7px;
+            object-fit: contain;
+        }
+
+        .bill-print-header h3 {
+            margin: 0 0 3px;
+            font-size: 17px;
+        }
+
+        .bill-print-header p {
+            margin: 0;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .bill-amount-words {
+            margin: 18px 0 0;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .bill-amount-words strong {
+            margin-right: 4px;
+        }
+
         .bill-output-feedback {
             margin: 8px 22px 0;
             color: var(--red);
@@ -1521,11 +1558,9 @@
             }
 
             .dialog-head {
-                padding: 0 0 8mm;
-                border: 0;
+                display: none !important;
             }
 
-            .dialog-head button,
             .bill-output-actions,
             .bill-output-feedback {
                 display: none !important;
@@ -1533,6 +1568,34 @@
 
             .preview-content {
                 padding: 0;
+            }
+
+            .bill-print-header {
+                display: block;
+                margin-bottom: 8mm;
+            }
+
+            .bill-print-header img {
+                width: 38mm;
+                max-height: 20mm;
+                margin-bottom: 2mm;
+            }
+
+            .bill-print-header h3 {
+                font-size: 16pt;
+            }
+
+            .bill-print-header p {
+                font-size: 9pt;
+            }
+
+            .table-wrap {
+                overflow: visible;
+            }
+
+            .bill-amount-words {
+                margin-top: 6mm;
+                padding: 3mm;
             }
 
             .preview-items tr,
@@ -1755,7 +1818,7 @@
                 </div>
                 <span class="today" id="today-label"></span>
                 <div class="topbar-actions">
-                    <span class="today">Pabitra Online Service</span>
+                    <span class="today">Pabitra's Online Services</span>
                     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">
                         <i class="bi bi-moon" aria-hidden="true"></i>
                         <span class="theme-toggle-label">Dark theme</span>
@@ -2242,6 +2305,7 @@
 
     <script src="/vendor/jspdf.umd.min.js"></script>
     <script src="/vendor/jspdf.plugin.autotable.min.js"></script>
+    <script src="/bill-pdf.js"></script>
     <script>
         const currency = new Intl.NumberFormat("en-IN", {
             style: "currency",
@@ -2261,7 +2325,6 @@
         let editingBillId = null;
         let previewBillData = null;
         let savedBillData = null;
-        let pdfFontPromise;
         let confirmResolver = null;
         const themeToggle = document.querySelector("#theme-toggle");
 
@@ -2698,6 +2761,33 @@
             return cell;
         }
 
+        function createBillPrintHeader() {
+            const header = document.createElement("header");
+            header.className = "bill-print-header";
+            const logo = document.createElement("img");
+            logo.src = "/pb-logo.gif";
+            logo.alt = "Pabitra's PB logo";
+            const name = document.createElement("h3");
+            name.textContent = window.BillPdf.shopInfo.name;
+            const business = document.createElement("p");
+            business.textContent = window.BillPdf.shopInfo.business;
+            const address = document.createElement("p");
+            address.textContent = window.BillPdf.shopInfo.address;
+            const mobile = document.createElement("p");
+            mobile.textContent = `Mobile: ${window.BillPdf.shopInfo.mobile}`;
+            header.append(logo, name, business, address, mobile);
+            return header;
+        }
+
+        function createAmountWords(total) {
+            const words = document.createElement("p");
+            words.className = "bill-amount-words";
+            const label = document.createElement("strong");
+            label.textContent = "Amount in Words:";
+            words.append(label, document.createTextNode(window.BillPdf.amountInWords(total)));
+            return words;
+        }
+
         function showBillDetails(bill) {
             savedBillData = bill;
             document.querySelector("#bill-detail-feedback").textContent = "";
@@ -2728,17 +2818,18 @@
             table.className = "preview-items";
             const head = document.createElement("thead");
             const headRow = document.createElement("tr");
-            for (const label of ["Product", "Code", "IMEI / serial", "Amount"]) {
+            for (const label of ["#", "Code", "Product / Details", "IMEI No.", "Amount"]) {
                 const cell = document.createElement("th");
                 cell.textContent = label;
                 headRow.append(cell);
             }
             head.append(headRow);
             const body = document.createElement("tbody");
-            for (const item of bill.items) {
+            for (const [index, item] of bill.items.entries()) {
                 const row = document.createElement("tr");
-                appendCell(row, item.productName);
+                appendCell(row, String(index + 1));
                 appendCell(row, item.productCode || "—");
+                appendCell(row, item.productName);
                 appendCell(row, item.imei || "—");
                 appendCell(row, money(item.amount));
                 body.append(row);
@@ -2761,7 +2852,7 @@
             const due = document.createElement("strong");
             due.textContent = `Due ${money(bill.due)}`;
             totals.append(due);
-            content.append(metadata, tableWrap, totals);
+            content.append(createBillPrintHeader(), metadata, tableWrap, totals, createAmountWords(bill.total));
         }
 
         async function openBillDetails(billId) {
@@ -2796,93 +2887,6 @@
                 month: "short",
                 year: "numeric",
             }).format(date);
-        }
-
-        async function getPdfFont() {
-            if (!pdfFontPromise) {
-                pdfFontPromise = fetch("/vendor/fonts/NotoSans-Variable.ttf").then(async (response) => {
-                    if (!response.ok) throw new Error(`Could not load the PDF font (${response.status})`);
-                    const bytes = new Uint8Array(await response.arrayBuffer());
-                    let binary = "";
-                    for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-                        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
-                    }
-                    return btoa(binary);
-                });
-            }
-            return pdfFontPromise;
-        }
-
-        async function downloadBillPdf(bill) {
-            if (!bill || !Array.isArray(bill.items) || bill.items.length === 0) {
-                throw new Error("This bill has no items to export.");
-            }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ format: "a4", unit: "mm" });
-            const font = await getPdfFont();
-            doc.addFileToVFS("NotoSans.ttf", font);
-            doc.addFont("NotoSans.ttf", "NotoSans", "normal");
-            doc.setFont("NotoSans", "normal");
-
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 15;
-            doc.setFillColor(88, 70, 216);
-            doc.roundedRect(margin, 13, 11, 11, 2, 2, "F");
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(12);
-            doc.text("B", margin + 5.5, 20.5, { align: "center" });
-            doc.setTextColor(24, 33, 58);
-            doc.setFontSize(18);
-            doc.text("Billwise", margin + 16, 19);
-            doc.setFontSize(9);
-            doc.text("Pabitra Online Service", margin + 16, 25);
-            doc.setFontSize(11);
-            doc.text("BILL", pageWidth - margin, 18, { align: "right" });
-            doc.setFontSize(9);
-            doc.text(`Bill number: ${bill.billNo}`, margin, 38);
-            doc.text(`Bill date: ${dateLabel(bill.billDate)}`, margin, 44);
-            doc.text(`Due date: ${dateLabel(bill.dueDate)}`, margin, 50);
-            doc.text(`Customer: ${bill.customerName}`, pageWidth / 2, 38);
-            doc.text(`Mobile: ${bill.customerMobile || "—"}`, pageWidth / 2, 44);
-            const address = doc.splitTextToSize(`Address: ${bill.customerAddress || "—"}`, pageWidth / 2 - margin);
-            doc.text(address, pageWidth / 2, 50);
-
-            doc.autoTable({
-                startY: 62,
-                margin: { left: margin, right: margin, bottom: 20 },
-                head: [["Product", "Code", "IMEI / serial", "Amount"]],
-                body: bill.items.map((item) => [
-                    item.productName || "—",
-                    item.productCode || "—",
-                    item.imei || "—",
-                    money(item.amount),
-                ]),
-                styles: { font: "NotoSans", fontStyle: "normal", fontSize: 8, cellPadding: 2.5, overflow: "linebreak" },
-                headStyles: { fillColor: [32, 43, 73], textColor: [255, 255, 255], fontStyle: "normal" },
-                columnStyles: { 3: { halign: "right", cellWidth: 29 } },
-                didDrawPage: ({ pageNumber }) => {
-                    doc.setFont("NotoSans", "normal");
-                    doc.setFontSize(8);
-                    doc.setTextColor(120, 129, 152);
-                    doc.text(`Page ${pageNumber}`, pageWidth - margin, pageHeight - 8, { align: "right" });
-                },
-            });
-
-            let totalsY = doc.lastAutoTable.finalY + 10;
-            if (totalsY + 22 > pageHeight - margin) {
-                doc.addPage();
-                totalsY = margin + 8;
-            }
-            doc.setTextColor(24, 33, 58);
-            doc.setFontSize(10);
-            doc.text(`Total: ${money(bill.total)}`, pageWidth - margin, totalsY, { align: "right" });
-            doc.text(`Paid: ${money(bill.paid)}`, pageWidth - margin, totalsY + 7, { align: "right" });
-            doc.setFontSize(12);
-            doc.text(`Balance due: ${money(bill.due)}`, pageWidth - margin, totalsY + 15, { align: "right" });
-
-            const safeBillNo = String(bill.billNo || "bill").replace(/[^\w.-]+/g, "-");
-            doc.save(`billwise-${safeBillNo}.pdf`);
         }
 
         function paymentStatus(bill) {
@@ -3430,21 +3434,26 @@
             table.className = "preview-items";
             const head = document.createElement("thead");
             const headRow = document.createElement("tr");
-            for (const label of ["Product", "IMEI / serial", "Amount"]) {
+            for (const label of ["#", "Code", "Product / Details", "IMEI No.", "Amount"]) {
                 const cell = document.createElement("th");
                 cell.textContent = label;
                 headRow.append(cell);
             }
             head.append(headRow);
             const body = document.createElement("tbody");
-            for (const item of items) {
+            for (const [index, item] of items.entries()) {
                 const row = document.createElement("tr");
+                appendCell(row, String(index + 1));
+                appendCell(row, item.productCode || "—");
                 appendCell(row, item.productName);
                 appendCell(row, item.imei || "—");
                 appendCell(row, money(item.amount));
                 body.append(row);
             }
             table.append(head, body);
+            const tableWrap = document.createElement("div");
+            tableWrap.className = "table-wrap";
+            tableWrap.append(table);
             const totals = document.createElement("div");
             totals.className = "preview-total";
             const totalLabel = document.createElement("span");
@@ -3454,7 +3463,7 @@
             const totalStrong = document.createElement("strong");
             totalStrong.textContent = `Balance due ${money(total - paid)}`;
             totals.append(totalLabel, paidLabel, totalStrong);
-            container.append(metadata, table, totals);
+            container.append(createBillPrintHeader(), metadata, tableWrap, totals, createAmountWords(total));
             document.querySelector("#preview-dialog").showModal();
         }
 
@@ -3482,7 +3491,7 @@
             button.disabled = true;
             feedback.textContent = "";
             try {
-                await downloadBillPdf(previewBillData);
+                await window.BillPdf.download(previewBillData);
             } catch (error) {
                 feedback.textContent = `Could not create PDF: ${error.message}`;
             } finally {
@@ -3495,7 +3504,7 @@
             button.disabled = true;
             feedback.textContent = "";
             try {
-                await downloadBillPdf(savedBillData);
+                await window.BillPdf.download(savedBillData);
             } catch (error) {
                 feedback.textContent = `Could not create PDF: ${error.message}`;
             } finally {

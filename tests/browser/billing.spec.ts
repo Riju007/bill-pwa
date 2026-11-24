@@ -12,10 +12,20 @@ test("serves local framework and install icons", async ({ page }) => {
     expect((await page.request.get("/vendor/bootstrap.min.css")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap-icons/bootstrap-icons.min.css")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2")).ok()).toBeTruthy();
+    expect((await page.request.get("/bill-pdf.js")).ok()).toBeTruthy();
+    expect((await page.request.get("/pb-logo.gif")).ok()).toBeTruthy();
     await expect(page.locator("#save-button")).toHaveClass(/btn/);
     await expect(page.locator(".sidebar .nav-button.active .bi")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.fonts.check("16px bootstrap-icons"))).toBeTruthy();
+    const wordExamples = await page.evaluate(() => {
+        const billPdf = (window as Window & { BillPdf: { amountInWords: (value: number) => string } }).BillPdf;
+        return [billPdf.amountInWords(102000), billPdf.amountInWords(1250.5)];
+    });
+    expect(wordExamples).toEqual([
+        "Rupees One Lakh Two Thousand Only",
+        "Rupees One Thousand Two Hundred Fifty and Paise Fifty Only",
+    ]);
 });
 
 test("previews a draft and downloads a readable PDF", async ({ page }) => {
@@ -33,6 +43,8 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     await expect(page.locator("#preview-dialog")).toBeVisible();
     await expect(page.locator("#preview-content")).toContainText("DRAFT-100");
     await expect(page.locator("#preview-content")).toContainText("Sample Customer");
+    await expect(page.locator("#preview-content .bill-print-header")).toContainText("Pabitra's Online Services");
+    await expect(page.locator("#preview-content .bill-amount-words")).toContainText("Rupees One Thousand Two Hundred Fifty Only");
 
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#download-preview").click();
@@ -43,6 +55,8 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     const pdf = await readFile(path!);
     expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
     expect(pdf.includes(Buffer.from("NotoSans"))).toBeTruthy();
+    expect(pdf.includes(Buffer.from("/Subtype /Image"))).toBeTruthy();
+    expect(pdf.toString("latin1")).toContain("Pabitra's Online Services - Bill DRAFT-100");
     expect(pdf.toString("latin1")).toContain("20B9");
 
     await page.emulateMedia({ media: "print" });

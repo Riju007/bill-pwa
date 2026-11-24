@@ -11,6 +11,7 @@ npx wrangler dev
 ```
 
 The local UI framework, icon font, PDF generator, and Noto Sans font are served from `public/`; no CDN access is required at runtime.
+Current shop contact details are kept in `personal/pabitra-info.txt`. The PDF module uses matching temporary values until a shop-settings feature is added.
 
 ## Tests
 
