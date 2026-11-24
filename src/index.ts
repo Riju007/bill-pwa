@@ -2,6 +2,7 @@ import { json } from "./http";
 import { handleBills } from "./routes/bills";
 import { handleCustomers } from "./routes/customers";
 import { handleDashboard } from "./routes/dashboard";
+import { handleItems } from "./routes/items";
 import { handleProducts } from "./routes/products";
 
 export default {
@@ -21,7 +22,7 @@ export default {
             return json({ utc: now.toISOString(), ist });
         }
 
-        for (const handler of [handleDashboard, handleBills, handleCustomers, handleProducts]) {
+        for (const handler of [handleDashboard, handleBills, handleCustomers, handleItems, handleProducts]) {
             const response = await handler(request, env);
             if (response) return response;
         }

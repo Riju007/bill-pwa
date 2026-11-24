@@ -15,10 +15,15 @@ let productNames = [];
 let addedItems = [];
 let customerSearchTimer;
 let productSearchTimer;
+let itemSearchTimer;
 let customerDirectoryQuery = "";
 let customerDirectoryPage = 1;
+let billDirectoryQuery = "";
+let billDirectoryPage = 1;
 let productDirectoryQuery = "";
 let productDirectoryPage = 1;
+let itemDirectoryQuery = "";
+let itemDirectoryPage = 1;
 let imeiScanStream = null;
 let imeiScanFrame = null;
 let imeiScanToken = 0;
@@ -296,13 +301,13 @@ function setNavigation(page) {
         if (active) button.setAttribute("aria-current", "page");
         else button.removeAttribute("aria-current");
     });
-    if (page === "bills") loadBills();
+    if (page === "bills") loadBills(billDirectoryQuery, billDirectoryPage);
     if (page === "dashboard") loadDashboard();
     if (page === "customers") {
         loadCustomerDirectory(document.querySelector("#customer-search").value.trim());
     }
     if (page === "products") {
-        loadProductDirectory(productDirectoryQuery, productDirectoryPage);
+        loadItemDirectory(itemDirectoryQuery, itemDirectoryPage);
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -970,6 +975,8 @@ function showRecordDetails(contentId, fields) {
 async function openDirectoryDetails(type, id) {
     const settings = type === "customer"
         ? { endpoint: "customers", dialog: "#customer-detail-dialog", content: "#customer-detail-content" }
+        : type === "item"
+            ? { endpoint: "items", dialog: "#item-detail-dialog", content: "#item-detail-content" }
         : { endpoint: "products", dialog: "#product-detail-dialog", content: "#product-detail-content" };
     const content = document.querySelector(settings.content);
     content.textContent = "Loading details…";
@@ -984,7 +991,19 @@ async function openDirectoryDetails(type, id) {
                 ["Address", entry.address],
                 ["Created on", createdAtLabel(entry.createdAt)],
             ]
-            : [["Product code", entry.code], ["Product name", entry.name]];
+            : type === "item"
+                ? [
+                    ["Item name", entry.productName],
+                    ["Product code", entry.productCode],
+                    ["IMEI number", entry.imei],
+                    ["Amount", money(entry.amount)],
+                    ["Bill number", entry.billNo],
+                    ["Bill date", dateLabel(entry.billDate)],
+                    ["Customer", entry.customerName],
+                    ["Customer mobile", entry.customerMobile],
+                    ["Customer address", entry.customerAddress],
+                ]
+                : [["Product code", entry.code], ["Product name", entry.name]];
         showRecordDetails(settings.content, fields);
     } catch (error) {
         content.textContent = `Could not load details: ${error.message}`;
@@ -1291,13 +1310,28 @@ async function loadDashboardLists() {
     */
 }
 
-async function loadBills(query = "") {
+async function loadBills(query = billDirectoryQuery, page = 1) {
     const target = document.querySelector("#all-bills");
+    const count = document.querySelector("#bills-count");
+    const pagination = document.querySelector("#bills-pagination");
+    const pageStatus = document.querySelector("#bills-page-status");
+    billDirectoryQuery = query;
     try {
-        const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
-        const bills = await api(`/api/bills${suffix}`);
-        renderBillRows(target, bills);
+        const params = new URLSearchParams({ page: String(page) });
+        if (query) params.set("q", query);
+        const result = await api(`/api/bills?${params}`);
+        billDirectoryPage = result.page;
+        const first = result.total ? (result.page - 1) * result.pageSize + 1 : 0;
+        const last = Math.min(result.page * result.pageSize, result.total);
+        count.textContent = `${result.total} ${result.total === 1 ? "bill" : "bills"}`;
+        pageStatus.textContent = `Showing ${first}–${last} of ${result.total} · Page ${result.page} of ${result.pageCount}`;
+        pagination.hidden = result.pageCount <= 1;
+        document.querySelector("#bills-previous-page").disabled = result.page <= 1;
+        document.querySelector("#bills-next-page").disabled = result.page >= result.pageCount;
+        renderBillRows(target, result.items);
     } catch (error) {
+        count.textContent = "";
+        pagination.hidden = true;
         target.replaceChildren();
         const row = document.createElement("tr");
         const cell = document.createElement("td");
@@ -1374,6 +1408,7 @@ async function loadCustomerDirectory(query = customerDirectoryQuery, page = 1) {
 
 async function loadProductDirectory(query = productDirectoryQuery, page = 1) {
     const target = document.querySelector("#product-list");
+    if (!target) return;
     const count = document.querySelector("#product-count");
     const pagination = document.querySelector("#product-pagination");
     try {
@@ -1412,6 +1447,53 @@ async function loadProductDirectory(query = productDirectoryQuery, page = 1) {
         count.textContent = "";
         pagination.hidden = true;
         showDirectoryMessage(target, 2, `Could not load items: ${error.message}`);
+    }
+}
+
+async function loadItemDirectory(query = itemDirectoryQuery, page = 1) {
+    const target = document.querySelector("#item-list");
+    const count = document.querySelector("#item-directory-count");
+    const pagination = document.querySelector("#item-pagination");
+    const pageStatus = document.querySelector("#item-page-status");
+    itemDirectoryQuery = query;
+    try {
+        const params = new URLSearchParams({ page: String(page) });
+        if (query) params.set("q", query);
+        const result = await api(`/api/items?${params}`);
+        itemDirectoryPage = result.page;
+        const first = result.total ? (result.page - 1) * result.pageSize + 1 : 0;
+        const last = Math.min(result.page * result.pageSize, result.total);
+        count.textContent = `${result.total} ${result.total === 1 ? "item" : "items"}`;
+        pageStatus.textContent = `Showing ${first}–${last} of ${result.total} · Page ${result.page} of ${result.pageCount}`;
+        pagination.hidden = result.pageCount <= 1;
+        document.querySelector("#item-previous-page").disabled = result.page <= 1;
+        document.querySelector("#item-next-page").disabled = result.page >= result.pageCount;
+        if (!result.items.length) {
+            showDirectoryMessage(target, 4, query ? "No items match your search." : "No billed items yet.");
+            return;
+        }
+
+        target.replaceChildren();
+        for (const item of result.items) {
+            const row = document.createElement("tr");
+            const nameCell = document.createElement("td");
+            const nameButton = document.createElement("button");
+            nameButton.className = "directory-name-link";
+            nameButton.type = "button";
+            nameButton.textContent = item.productName;
+            nameButton.setAttribute("aria-label", `View ${item.productName} item details`);
+            nameButton.addEventListener("click", () => openDirectoryDetails("item", item.id));
+            nameCell.append(nameButton);
+            row.append(nameCell);
+            appendCell(row, item.productCode || "—");
+            appendCell(row, item.imei || "—");
+            appendCell(row, money(item.amount));
+            target.append(row);
+        }
+    } catch (error) {
+        count.textContent = "";
+        pagination.hidden = true;
+        showDirectoryMessage(target, 4, `Could not load items: ${error.message}`);
     }
 }
 
@@ -1785,7 +1867,13 @@ document.querySelector("#clear-button").addEventListener("click", resetForm);
 form.addEventListener("input", refreshSavedBillActions);
 form.addEventListener("change", refreshSavedBillActions);
 document.querySelector("#bill-search").addEventListener("input", (event) => {
-    loadBills(event.target.value.trim());
+    loadBills(event.target.value.trim(), 1);
+});
+document.querySelector("#bills-previous-page").addEventListener("click", () => {
+    loadBills(billDirectoryQuery, billDirectoryPage - 1);
+});
+document.querySelector("#bills-next-page").addEventListener("click", () => {
+    loadBills(billDirectoryQuery, billDirectoryPage + 1);
 });
 document.querySelector("#customer-search").addEventListener("input", (event) => {
     window.clearTimeout(customerSearchTimer);
@@ -1800,18 +1888,18 @@ document.querySelector("#customer-previous-page").addEventListener("click", () =
 document.querySelector("#customer-next-page").addEventListener("click", () => {
     loadCustomerDirectory(customerDirectoryQuery, customerDirectoryPage + 1);
 });
-document.querySelector("#product-search").addEventListener("input", (event) => {
-    window.clearTimeout(productSearchTimer);
-    productSearchTimer = window.setTimeout(
-        () => loadProductDirectory(event.target.value.trim(), 1),
+document.querySelector("#item-search").addEventListener("input", (event) => {
+    window.clearTimeout(itemSearchTimer);
+    itemSearchTimer = window.setTimeout(
+        () => loadItemDirectory(event.target.value.trim(), 1),
         250,
     );
 });
-document.querySelector("#product-previous-page").addEventListener("click", () => {
-    loadProductDirectory(productDirectoryQuery, productDirectoryPage - 1);
+document.querySelector("#item-previous-page").addEventListener("click", () => {
+    loadItemDirectory(itemDirectoryQuery, itemDirectoryPage - 1);
 });
-document.querySelector("#product-next-page").addEventListener("click", () => {
-    loadProductDirectory(productDirectoryQuery, productDirectoryPage + 1);
+document.querySelector("#item-next-page").addEventListener("click", () => {
+    loadItemDirectory(itemDirectoryQuery, itemDirectoryPage + 1);
 });
 document.querySelector("#new-customer-button").addEventListener("click", () => {
     openDirectoryForm("customer");

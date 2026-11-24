@@ -70,6 +70,30 @@ const bills = [secondBill, bill].map((entry) => ({
     total: entry.total,
     due: entry.due,
 }));
+const itemRecords = [
+    ...bill.items.map((item, index) => ({
+        id: index + 1,
+        ...item,
+        billId: bill.id,
+        billNo: bill.billNo,
+        billDate: bill.billDate,
+        customerId: bill.customerId,
+        customerName: bill.customerName,
+        customerMobile: bill.customerMobile,
+        customerAddress: bill.customerAddress,
+    })),
+    ...secondBill.items.map((item, index) => ({
+        id: bill.items.length + index + 1,
+        ...item,
+        billId: secondBill.id,
+        billNo: secondBill.billNo,
+        billDate: secondBill.billDate,
+        customerId: secondBill.customerId,
+        customerName: secondBill.customerName,
+        customerMobile: secondBill.customerMobile,
+        customerAddress: secondBill.customerAddress,
+    })),
+];
 const customerBilling = [{
     customerId: customer.id,
     customerName: customer.name,
@@ -204,7 +228,55 @@ const server = createServer(async (request, response) => {
         return;
     }
     if (url.pathname === "/api/bills" && request.method === "GET") {
-        json(response, bills);
+        const pageParam = url.searchParams.get("page");
+        if (pageParam) {
+            const query = url.searchParams.get("q")?.trim().toLowerCase();
+            const matches = bills.filter((entry) => !query
+                || entry.billNo.toLowerCase().includes(query)
+                || entry.customerName.toLowerCase().includes(query));
+            const pageSize = 10;
+            const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+            const page = Math.min(Number(pageParam), pageCount);
+            json(response, {
+                items: matches.slice((page - 1) * pageSize, page * pageSize),
+                page,
+                pageSize,
+                total: matches.length,
+                pageCount,
+            });
+        } else {
+            json(response, bills);
+        }
+        return;
+    }
+    if (url.pathname === "/api/items") {
+        const query = url.searchParams.get("q")?.trim().toLowerCase();
+        const matches = [...itemRecords]
+            .reverse()
+            .filter((entry) => !query || [
+                entry.productName,
+                entry.productCode,
+                entry.imei,
+                entry.billNo,
+                entry.customerName,
+                entry.customerMobile,
+            ].some((value) => value?.toLowerCase().includes(query)));
+        const pageSize = 10;
+        const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+        const page = Math.min(Number(url.searchParams.get("page")) || 1, pageCount);
+        json(response, {
+            items: matches.slice((page - 1) * pageSize, page * pageSize),
+            page,
+            pageSize,
+            total: matches.length,
+            pageCount,
+        });
+        return;
+    }
+    const itemMatch = /^\/api\/items\/(\d+)$/.exec(url.pathname);
+    if (itemMatch && request.method === "GET") {
+        const entry = itemRecords.find((candidate) => candidate.id === Number(itemMatch[1]));
+        json(response, entry || { error: "Item not found" }, entry ? 200 : 404);
         return;
     }
     if (url.pathname === "/api/bills/7" && request.method === "GET") {

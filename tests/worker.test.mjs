@@ -297,6 +297,123 @@ test("product directory rejects an invalid page before accessing D1", async () =
     assert.match((await response.json()).error, /positive integer/);
 });
 
+test("item directory returns a paginated bill item with customer and bill fields", async () => {
+    const itemEnv = {
+        DB: {
+            prepare(query) {
+                return {
+                    bind(...values) {
+                        return {
+                            all: async () => {
+                                if (query.includes("COUNT(*)")) {
+                                    assert.match(query, /JOIN bills b/);
+                                    assert.deepEqual(values, ["%Widget%", "%Widget%", "%Widget%", "%Widget%", "%Widget%", "%Widget%"]);
+                                    return { results: [{ total: 11 }] };
+                                }
+                                assert.match(query, /ORDER BY bi\.id DESC LIMIT \? OFFSET \?/);
+                                assert.deepEqual(values, ["%Widget%", "%Widget%", "%Widget%", "%Widget%", "%Widget%", "%Widget%", 10, 10]);
+                                return {
+                                    results: [{
+                                        id: 11,
+                                        productName: "Widget",
+                                        billNo: "INV-11",
+                                        customerName: "Sample Customer",
+                                    }],
+                                };
+                            },
+                        };
+                    },
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/items?q=Widget&page=2"), itemEnv);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        items: [{
+            id: 11,
+            productName: "Widget",
+            billNo: "INV-11",
+            customerName: "Sample Customer",
+        }],
+        page: 2,
+        pageSize: 10,
+        total: 11,
+        pageCount: 2,
+    });
+});
+
+test("item details include the associated customer and bill", async () => {
+    const itemEnv = {
+        DB: {
+            prepare(query) {
+                assert.match(query, /WHERE bi\.id = \?/);
+                return {
+                    bind(id) {
+                        assert.equal(id, 17);
+                        return {
+                            all: async () => ({
+                                results: [{
+                                    id: 17,
+                                    productName: "Widget",
+                                    billNo: "INV-17",
+                                    customerName: "Sample Customer",
+                                }],
+                            }),
+                        };
+                    },
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/items/17"), itemEnv);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        id: 17,
+        productName: "Widget",
+        billNo: "INV-17",
+        customerName: "Sample Customer",
+    });
+});
+
+test("all bills directory returns a paginated result", async () => {
+    const billEnv = {
+        DB: {
+            prepare(query) {
+                return {
+                    bind(...values) {
+                        return {
+                            all: async () => {
+                                if (query.includes("COUNT(*)")) {
+                                    assert.deepEqual(values, ["%INV%", "%INV%", "INV"]);
+                                    return { results: [{ total: 12 }] };
+                                }
+                                assert.match(query, /GROUP BY b\.id ORDER BY b\.id DESC LIMIT \? OFFSET \?/);
+                                assert.deepEqual(values, ["%INV%", "%INV%", "INV", 10, 10]);
+                                return {
+                                    results: [{ id: 11, billNo: "INV-11", customerName: "Sample Customer" }],
+                                };
+                            },
+                        };
+                    },
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/bills?q=INV&page=2"), billEnv);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        items: [{ id: 11, billNo: "INV-11", customerName: "Sample Customer" }],
+        page: 2,
+        pageSize: 10,
+        total: 12,
+        pageCount: 2,
+    });
+});
+
 test("product code suggestions include saved catalog and bill item codes", async () => {
     const suggestionsEnv = {
         DB: {

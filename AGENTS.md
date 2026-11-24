@@ -1,104 +1,117 @@
 # AGENTS.md
 
-Guidance for AI coding agents (GitHub Copilot, Claude Code, etc.) working in this repo. Keep changes small and match the existing style. Facts below were checked against the code on 2026-11-24.
+Repository guidance for coding agents. Keep changes focused, preserve existing behavior, and update this file when the architecture or workflows change. Facts were checked against the repository on 2026-11-24.
 
-## Project
+## Project and stack
 
-Billwise is a mobile-friendly billing workspace: customers, products, bills, and a branded A4 PDF per bill. It is a **learning project** by one developer (strong Python/Django/FastAPI background, new to TypeScript and Cloudflare) for a single shop. It is not a client product and it is not multi-tenant.
+PB Ledger is a single-shop, mobile-friendly billing PWA and learning project. It is not multi-tenant.
 
-## Stack
+- **Frontend:** plain HTML, CSS, and JavaScript in `public/`. There is no frontend framework, bundler, or build step. Bootstrap and Bootstrap Icons are self-hosted under `public/vendor/`.
+- **API:** TypeScript Cloudflare Worker in `src/`, deployed with `public/` as Workers static assets (not Pages). Static assets are served before unmatched requests reach the Worker.
+- **Database:** Cloudflare D1 / SQLite, binding `DB`, database `bill-pwa-db`.
+- **PDF:** browser-generated with jsPDF and jspdf-autotable in `public/bill-pdf.js`. The local Noto Sans font is required for reliable ₹ rendering.
+- **Tests:** Node test runner with `tsx` for Worker handlers, and Playwright for browser behavior.
 
-- **Frontend:** plain HTML/CSS/JS in `public/`. No framework, no bundler, no build step. Bootstrap and Bootstrap Icons are self-hosted in `public/vendor/` (no CDN at runtime).
-- **API:** Cloudflare Worker in TypeScript (`src/`). It is deployed together with `public/` as Workers static assets (not Pages). Files in `public/` are served first; unmatched paths reach the Worker.
-- **Database:** Cloudflare D1 (SQLite). Binding `DB`, database name `bill-pwa-db`.
-- **PDF:** generated in the browser with jsPDF + jspdf-autotable (`public/bill-pdf.js`). The Noto Sans font in `public/vendor/fonts/` is needed for the rupee sign.
-- **Tests:** Node test runner (with `tsx`) for the Worker; Playwright for the browser.
-
-## Layout
+## Project map
 
 ```
-src/index.ts            Worker entry: /api/health, /api/time, then route handlers
-src/routes/             bills.ts, customers.ts, products.ts, dashboard.ts
-src/validation.ts       Request-body parsing and validation (Parsed<T>)
-src/http.ts             json(), text(), readJson(), Parsed<T>
-migrations/             D1 migrations, numbered (0001_init_schema.sql)
-public/index.html       Shared layout; page fragments are in public/pages/
-public/js/app-loader.js Loads page fragments, then imports public/js/app.js
-public/js/app.js        All UI behaviour
-public/bill-pdf.js      PDF generation, amount in words (Indian system), shopInfo
-public/css/app.css      Styles
-tests/                  worker.test.mjs, browser/*.spec.ts, server.mjs (fixture server)
-docs/log.md             Owner's learning notes
-worker-configuration.d.ts  GENERATED, do not edit
+src/index.ts               Worker entry point and route-handler registration
+src/routes/                bills, customers, dashboard, items, products
+src/validation.ts          API request parsing and business validation
+src/http.ts                Shared JSON/text responses and request parsing
+migrations/                Numbered D1 schema migrations
+public/index.html          Shared shell, navigation, dialogs, script/style links
+public/pages/*.html        Page fragments inserted into one shared document
+public/js/app-loader.js    Fetches page fragments, then imports app.js
+public/js/app.js           UI state, rendering, event handlers, and API calls
+public/bill-pdf.js         PDF generation, sharing, amount-in-words, shopInfo
+public/css/app.css         Application styles and responsive behavior
+public/vendor/             Self-hosted third-party assets; do not edit by hand
+tests/worker.test.mjs      Worker tests using D1 stubs
+tests/browser/*.spec.ts    Playwright browser tests
+tests/server.mjs           Static fixture server and mocked API responses
+docs/log.md                Owner's learning notes
+worker-configuration.d.ts  Generated Worker types; do not edit by hand
 ```
 
-## Commands
+The user-facing **Items** page lists `bill_items` records and their associated bill/customer data. The separate `products` table and `/api/products` handlers are retained for catalog/suggestion functionality; do not confuse catalog products with billed line items.
+
+## Local development and checks
 
 ```powershell
 npm ci
 npx wrangler d1 migrations apply bill-pwa-db --local
 npx wrangler dev                 # http://127.0.0.1:8787
-npm test                         # test:worker, then test:browser
+npm test                         # Worker tests, then browser tests
 npm run test:worker
-npx playwright install chromium  # once, before test:browser
-npx wrangler types               # regenerate worker-configuration.d.ts after binding changes
+npm run test:browser
+npx playwright install chromium  # only if Playwright reports Chromium is missing
+npx wrangler types               # regenerate Worker types after binding changes
 ```
 
-Local D1 data lives in `.wrangler/` (gitignored) and is separate from production.
+Local D1 data is under `.wrangler/` and is separate from production. Do not apply migrations remotely unless the owner explicitly requests it.
 
-## Code conventions
+## Architecture and implementation guidance
 
-- TypeScript with 4-space indentation, double quotes and semicolons.
-- Each route module exports `handleX(request, env): Promise<Response | null>`. Return `null` when the path is not yours, and register the handler in `src/index.ts`.
-- Validate every request body in `src/validation.ts` before touching D1. Errors are `{ "error": "message" }` with a 4xx status, built with `json()`.
-- SQL is always parameterised: `env.DB.prepare("... ?").bind(value)`. Never put user input into SQL text.
-- Writes that touch several rows use `env.DB.batch([...])`.
-- API JSON is camelCase. SQL columns are snake_case and aliased with `AS` in queries.
-- `bill_date` and `due_date` are `YYYY-MM-DD` text (calendar days). `created_at` is a UTC ISO timestamp.
-- Frontend: build DOM with `textContent` and DOM APIs. Do not insert user data with `innerHTML`.
+- Keep the existing plain HTML/CSS/JS architecture. Do not introduce a frontend framework, bundler, CDN dependency, or broad `app.js` refactor unless explicitly requested.
+- Page fragments are fetched by `public/js/app-loader.js`; add a new fragment to its `pages` array and add its navigation in `public/index.html`.
+- **All page fragments are in the DOM at once.** Keep element IDs unique across every fragment and shared dialog. Duplicate IDs make `querySelector()` silently select the first fragment and can break hidden-page behavior.
+- Keep user-facing pages read-only or editable according to the existing UX; API capability alone is not a reason to expose create/update/delete controls.
+- Build dynamic UI with DOM APIs and `textContent`. `innerHTML` is only appropriate for fixed, trusted markup such as static icons; never interpolate user or database values into it.
+- Use the existing helpers, naming, formatting, and localization. Prefer a small fix over restructuring.
 
-## Money and business rules
+### Worker and API patterns
 
-- Money is stored as `REAL` rupees. This is the owner's decision (the original plan said integer paise), so do not "fix" it silently. Keep money arithmetic in as few places as possible.
-- `total` and `due` are never stored. Compute them from `bill_items` (`due = total - paid`).
-- Customer name/mobile/address and product code/name are **snapshotted** onto the bill and its items.
-- Enforced on the server today: mobile is exactly 10 digits; IMEI is exactly 15 digits; each item amount is 1000 to 500000; `paid` cannot exceed the total; 1 to 100 items per bill; `customerId` is required.
-- Amount in words follows the Indian system (lakh, crore).
-- GST and tax logic does not exist. Do not add any without the owner asking and a CA's input.
+- Each route module exports `handleX(request, env): Promise<Response | null>`. Return `null` for paths it does not own and register new handlers in `src/index.ts`.
+- Validate every request body in `src/validation.ts` before database access. Return errors using `json({ error: "..." }, status)`.
+- Parameterize SQL with `env.DB.prepare(...).bind(...)`; never interpolate user input into SQL.
+- Use `env.DB.batch([...])` for related multi-row writes.
+- Keep API JSON camelCase and SQL columns snake_case, aliased in queries.
+- Customer, bill, and item directory UIs use server-side pagination (10 rows per page). Paginated APIs return `{ items, page, pageSize, total, pageCount }`; preserve this shape when changing list APIs.
+- `/api/items` represents bill line items joined to bills, not rows in the product catalog. Item details should retain their bill and customer association.
+- When changing an API response, update the matching browser fixture in `tests/server.mjs` and add/update Worker and browser tests as applicable.
 
-## Privacy and secrets
+### Data and business rules
 
-- Never put real customer data (names, phones, IMEIs, addresses) in code, tests, fixtures, commits, logs or prompts. Use obviously fake data such as `Sample Customer`, `9876543210`, `123456789012345`.
-- Shop details are hardcoded in `shopInfo` in `public/bill-pdf.js` until a settings feature exists. Do not add more personal details to the repo. A local `personal/` folder is for private notes and must never be committed.
-- No secrets in code or in `wrangler.jsonc` `vars` (those are public config). Local secrets go in `.dev.vars` (gitignored). Production secrets use `npx wrangler secret put NAME`.
-- Do not copy or reverse-engineer code, HTML, CSS, API calls or design from any existing paid billing product.
-
-## Safety rules for agents
-
-- Default to `--local` for D1. Do not run anything with `--remote`, `wrangler deploy` or `wrangler secret put` unless the owner explicitly asks.
-- Never edit a migration that has been applied. Add the next numbered file in `migrations/`.
-- Stage files by name (`git add path/to/file`), not `git add .` or `git add --all`. Run `git status` before every commit.
-- Do not hand-edit generated or vendored files: `worker-configuration.d.ts`, `public/vendor/`, `package-lock.json`.
-- A push to `main` deploys to production automatically (Workers Builds). The Worker name in the Cloudflare dashboard must equal `name` in `wrangler.jsonc` (`bill-pwa`). Run `npm test` before suggesting a push.
+- Money is stored as `REAL` rupees by owner decision; do not silently migrate it to paise. Keep calculations consistent.
+- `total` and `due` are derived from bill items and paid amount; they are not stored.
+- Customer and bill data, product names/codes, and bill item data are snapshotted for invoice history.
+- Server validation currently requires a customer, a 10-digit mobile, 15 numeric IMEI digits, unique IMEIs within a bill, item amounts from ₹1,000 to ₹5,00,000, and 1–100 bill items. `paid` cannot exceed the total.
+- Dates are `YYYY-MM-DD`; `created_at` values are UTC ISO timestamps. Amount-in-words uses Indian numbering (lakh/crore).
+- GST/tax logic does not exist. Do not add it without the owner asking and a CA's input.
 
 ## Testing notes
 
-- `tests/worker.test.mjs` replaces `env.DB` with a stub that throws, so it only covers requests rejected before any SQL runs. No test exercises the real D1 queries.
-- Playwright tests run against `tests/server.mjs`, a fixture server with fake data that serves `public/` and mocks `/api/*`. It does not run the real Worker. If you change an API response shape, update `tests/server.mjs` and the tests too.
-- Add or update tests when you change validation, amount-in-words, or PDF output.
+- `npm test` is the standard verification command. Use targeted tests while iterating, then run the full suite before finishing.
+- Worker tests use D1 stubs. They verify handler validation and query/response behavior, but they are not a real-D1 integration test.
+- Playwright runs against `tests/server.mjs`, not the Worker or D1. Its fake API responses must match the production response shape; it verifies rendered behavior and interactions.
+- For database/API changes, cover pagination, search, empty results, invalid input, and detail-not-found behavior where relevant.
+- For PDF/share changes, test the actual file payload in the mocked Web Share API and the unsupported-browser fallback. Browser mocks do not replace testing on a physical device.
+- Run `git diff --check` after edits. Do not add dependencies unless a requirement cannot be met with the existing stack.
 
-## Known gaps (as of 2026-11-24)
+## Privacy, secrets, and deployment safety
 
-- There is no login. Every `/api` route, including DELETE, is public.
-- There is no Luhn check on IMEI and no duplicate-IMEI check within a bill.
-- There is no service worker (only a manifest and icons), no offline support, no camera IMEI scan, and no backup or export.
-- `bills.bill_no` is not unique and is generated in the browser.
-- `vars.SHOP_NAME` in `wrangler.jsonc` is unused.
+- Never put real customer names, phone numbers, IMEIs, or addresses in source, tests, fixtures, commits, or logs. Use synthetic values.
+- Private owner details belong only in the local `personal/` folder; never commit them or copy them into new code/docs. Shop details currently live in `shopInfo` in `public/bill-pdf.js`.
+- `wrangler.jsonc` `vars` are public configuration, not secrets. Keep local secrets in ignored `.dev.vars`; use production secrets only when explicitly authorized.
+- No login currently protects `/api`; every route is public. Do not expose real customer data or deploy changes without the owner's explicit request.
+- Default all D1 work to `--local`. Do not run `--remote`, `wrangler deploy`, or `wrangler secret put` unless explicitly asked.
+- Never edit an applied migration; add the next numbered migration. Do not hand-edit `worker-configuration.d.ts`, `public/vendor/`, or `package-lock.json`.
+- A push to `main` deploys through Workers Builds. Run the full test suite before suggesting a push.
+- Do not copy or reverse-engineer code, markup, APIs, or designs from paid billing products.
+
+## Known limitations to keep in mind
+
+- Camera scanning uses `BarcodeDetector` and `getUserMedia`; there is no decoder polyfill. `BarcodeDetector` support varies by browser. Camera access requires a secure context: HTTPS, or localhost on the same device. A phone opening a computer's `http://<LAN-IP>` URL does not meet that requirement.
+- There is no service worker/offline mode, backup/export workflow, or IMEI Luhn validation.
+- IMEIs are checked for uniqueness within a bill, not globally across all bills.
+- Bill numbers are generated in the browser and `bills.bill_no` is not unique in the schema.
+- `SHOP_NAME` in `wrangler.jsonc` is currently unused; PDF shop details are configured separately in `public/bill-pdf.js`.
 
 ## Working with the owner
 
-- Explain TypeScript and Cloudflare concepts briefly, with a Python or FastAPI analogy when it helps.
-- Prefer simple solutions. Ask before adding a library, service or abstraction.
-- Never invent Cloudflare limits, prices or API details. Check the current docs, and say what you did not verify.
-- If a decision looks weak, say so directly and say why.
-- Work in small steps. After a change, say how to test it (a command or a request to send).
+- Explain TypeScript and Cloudflare concepts briefly, using a Python/FastAPI analogy when helpful.
+- Prefer simple, focused solutions. Ask before adding a library, cloud service, or abstraction.
+- Do not guess Cloudflare limits, costs, or API behavior; verify current documentation when needed and say what remains unverified.
+- Be direct when an existing decision creates a limitation or risk, and explain why.
+- Summarize changed files, behavior, tests run, and any manual/device verification still needed.

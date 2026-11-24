@@ -40,7 +40,7 @@
                 </button>
                 <button class="nav-button" type="button" data-page="bills">
                     <i class="nav-icon bi bi-receipt" aria-hidden="true"></i>
-                    All bills
+                    Bills
                 </button>
                 <button class="nav-button" type="button" data-page="customers">
                     <i class="nav-icon bi bi-people" aria-hidden="true"></i>
@@ -161,6 +161,14 @@
             <button class="button ghost" type="button" data-close-dialog="product-detail-dialog" aria-label="Close product details">Close</button>
         </div>
         <div class="preview-content" id="product-detail-content" aria-live="polite"></div>
+    </dialog>
+
+    <dialog id="item-detail-dialog" aria-labelledby="item-detail-title">
+        <div class="dialog-head">
+            <h2 id="item-detail-title">Item details</h2>
+            <button class="button ghost" id="close-item-details" type="button" data-close-dialog="item-detail-dialog" aria-label="Close item details">Close</button>
+        </div>
+        <div class="preview-content" id="item-detail-content" aria-live="polite"></div>
     </dialog>
 
     <dialog id="imei-scanner-dialog" aria-labelledby="imei-scanner-title">

@@ -100,20 +100,24 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
     ]);
 });
 
-test("lists saved items with pagination and opens item details", async ({ page }) => {
+test("lists billed items with pagination and shows their customer and bill details", async ({ page }) => {
     await page.goto("/");
     await page.locator('.sidebar [data-page="products"]').click();
 
-    await expect(page.locator("#product-list tr")).toHaveCount(10);
-    await expect(page.locator("#product-page-status")).toHaveText("Page 1 of 2");
+    await expect(page.locator("#item-list tr")).toHaveCount(10);
+    await expect(page.locator("#item-page-status")).toContainText("Page 1 of 5");
     await expect(page.locator("#new-product-button")).toHaveCount(0);
-    await page.locator("#product-next-page").click();
-    await expect(page.locator("#product-list tr")).toHaveCount(1);
-    await page.getByRole("button", { name: "View Sample Phone details" }).click();
+    await expect(page.locator("#page-products thead th")).toHaveText(["Item name", "Product code", "IMEI number", "Amount (₹)"]);
+    await page.getByRole("button", { name: "View Second Phone item details" }).click();
+    await expect(page.locator("#item-detail-dialog")).toBeVisible();
+    await expect(page.locator("#item-detail-content")).toContainText("Second Phone");
+    await expect(page.locator("#item-detail-content")).toContainText("INV-41");
+    await expect(page.locator("#item-detail-content")).toContainText("Sample Customer");
 
-    await expect(page.locator("#product-detail-dialog")).toBeVisible();
-    await expect(page.locator("#product-detail-content")).toContainText("P001");
-    await expect(page.locator("#product-detail-content")).toContainText("Sample Phone");
+    await page.locator("#close-item-details").click();
+    await page.locator("#item-next-page").click();
+    await expect(page.locator("#item-list tr")).toHaveCount(10);
+    await expect(page.locator("#item-page-status")).toContainText("Page 2 of 5");
 });
 
 test("adds, edits, and deletes manually entered bill items", async ({ page }) => {
@@ -535,6 +539,51 @@ test("customer directory paginates results and resets pagination for search", as
     await expect(page.locator("#customer-list tr")).toHaveCount(1);
     await expect(page.locator("#customer-page-status")).toContainText("Page 1 of 1");
     await expect(page.locator("#customer-pagination")).toBeHidden();
+});
+
+test("all bills directory paginates results and resets pagination for search", async ({ page }) => {
+    const bills = Array.from({ length: 12 }, (_, index) => ({
+        id: index + 1,
+        billNo: `PAGE-${index + 1}`,
+        billDate: "2026-11-24",
+        dueDate: null,
+        customerName: `Pagination Customer ${index + 1}`,
+        paid: 0,
+        total: 1500,
+        due: 1500,
+    }));
+    await page.route("**/api/bills?page=*", async (route) => {
+        const url = new URL(route.request().url());
+        const query = url.searchParams.get("q")?.toLowerCase();
+        const matches = bills.filter((bill) => !query
+            || bill.billNo.toLowerCase().includes(query)
+            || bill.customerName.toLowerCase().includes(query));
+        const pageSize = 10;
+        const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+        const currentPage = Math.min(Number(url.searchParams.get("page")), pageCount);
+        await route.fulfill({
+            json: {
+                items: matches.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+                page: currentPage,
+                pageSize,
+                total: matches.length,
+                pageCount,
+            },
+        });
+    });
+    await page.goto("/");
+    await page.locator('.sidebar [data-page="bills"]').click();
+
+    await expect(page.locator("#all-bills tr")).toHaveCount(10);
+    await expect(page.locator("#bills-page-status")).toContainText("Page 1 of 2");
+    await expect(page.locator("#bills-previous-page")).toBeDisabled();
+    await page.locator("#bills-next-page").click();
+    await expect(page.locator("#all-bills tr")).toHaveCount(2);
+    await expect(page.locator("#bills-page-status")).toContainText("Page 2 of 2");
+    await page.locator("#bill-search").fill("PAGE-12");
+    await expect(page.locator("#all-bills tr")).toHaveCount(1);
+    await expect(page.locator("#bills-page-status")).toContainText("Page 1 of 1");
+    await expect(page.locator("#all-bills")).toContainText("PAGE-12");
 });
 
 test("shows customer totals and every bill item across multiple bills", async ({ page }) => {

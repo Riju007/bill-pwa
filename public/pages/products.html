@@ -3,38 +3,39 @@
                         <div>
                             <p class="eyebrow">Saved items</p>
                             <h1 id="products-title">Items</h1>
-                            <p class="subtitle">Browse saved item names and product codes.</p>
+                            <p class="subtitle">Browse billed items and see the customer and bill linked to each one.</p>
                         </div>
                         <div class="list-toolbar directory-toolbar">
                             <label class="search-box">
-                                <input class="form-control" id="product-search" type="search" placeholder="Search items…" aria-label="Search items">
+                                <input class="form-control" id="item-search" type="search" placeholder="Search items, customers, or bills…" aria-label="Search items, customers, or bills">
                             </label>
                         </div>
                     </div>
-                    <p class="operation-feedback" id="product-feedback" role="status" aria-live="polite"></p>
                     <section class="panel" aria-label="Saved items list">
                         <div class="panel-header">
-                            <h2>Saved items</h2>
-                            <span class="field-hint" id="product-count" role="status" aria-live="polite"></span>
+                            <h2>Billed items</h2>
+                            <span class="field-hint" id="item-directory-count" role="status" aria-live="polite"></span>
                         </div>
                         <div class="table-wrap">
-                            <table class="products-table">
+                            <table class="items-table">
                                 <thead>
                                     <tr>
-                                        <th>Product code</th>
                                         <th>Item name</th>
+                                        <th>Product code</th>
+                                        <th>IMEI number</th>
+                                        <th>Amount (₹)</th>
                                     </tr>
                                 </thead>
-                                <tbody id="product-list">
-                                    <tr><td class="empty-state loading" colspan="2">Loading items…</td></tr>
+                                <tbody id="item-list">
+                                    <tr><td class="empty-state loading" colspan="4">Loading items…</td></tr>
                                 </tbody>
                             </table>
                         </div>
-                        <div class="table-pagination" id="product-pagination" aria-label="Item list pagination" hidden>
-                            <span id="product-page-status" role="status" aria-live="polite"></span>
+                        <div class="table-pagination" id="item-pagination" aria-label="Item list pagination" hidden>
+                            <span id="item-page-status" role="status" aria-live="polite"></span>
                             <div>
-                                <button class="button secondary btn" id="product-previous-page" type="button" aria-label="Previous item page">Previous</button>
-                                <button class="button secondary btn" id="product-next-page" type="button" aria-label="Next item page">Next</button>
+                                <button class="button secondary btn" id="item-previous-page" type="button" aria-label="Previous item page">Previous</button>
+                                <button class="button secondary btn" id="item-next-page" type="button" aria-label="Next item page">Next</button>
                             </div>
                         </div>
                     </section>

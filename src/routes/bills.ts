@@ -210,6 +210,7 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
 
         if (request.method === "GET") {
             const q = url.searchParams.get("q")?.trim();
+            const pageParam = url.searchParams.get("page");
             const base = `SELECT b.id, b.bill_no AS billNo, b.bill_date AS billDate,
                     b.due_date AS dueDate, b.customer_name AS customerName,
                     b.customer_mobile AS customerMobile, b.paid,
@@ -217,6 +218,28 @@ export async function handleBills(request: Request, env: Env): Promise<Response 
                     MAX(COALESCE(SUM(bi.amount), 0) - b.paid, 0) AS due
                 FROM bills b
                 LEFT JOIN bill_items bi ON bi.bill_id = b.id`;
+            if (pageParam !== null) {
+                if (!/^[1-9]\d*$/.test(pageParam) || !Number.isSafeInteger(Number(pageParam))) {
+                    return json({ error: "page must be a positive integer" }, 400);
+                }
+                const pageSize = 10;
+                const filter = q
+                    ? " WHERE b.bill_no LIKE ? OR b.customer_name LIKE ? OR b.customer_mobile = ?"
+                    : "";
+                const filterValues = q ? [`%${q}%`, `%${q}%`, q] : [];
+                const count = await env.DB
+                    .prepare(`SELECT COUNT(*) AS total FROM bills b${filter}`)
+                    .bind(...filterValues)
+                    .all();
+                const total = Number(count.results[0]?.total ?? 0);
+                const pageCount = Math.max(1, Math.ceil(total / pageSize));
+                const page = Math.min(Number(pageParam), pageCount);
+                const { results } = await env.DB
+                    .prepare(`${base}${filter} GROUP BY b.id ORDER BY b.id DESC LIMIT ? OFFSET ?`)
+                    .bind(...filterValues, pageSize, (page - 1) * pageSize)
+                    .all();
+                return json({ items: results, page, pageSize, total, pageCount });
+            }
             const stmt = q
                 ? env.DB.prepare(
                     `${base}

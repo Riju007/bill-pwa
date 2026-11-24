@@ -2,7 +2,7 @@
                     <div class="page-heading">
                         <div>
                             <p class="eyebrow">Records</p>
-                            <h1 id="bills-title">All bills</h1>
+                            <h1 id="bills-title">Bills</h1>
                             <p class="subtitle">Search bills by number, customer, or mobile.</p>
                         </div>
                         <div class="list-toolbar">
@@ -14,6 +14,10 @@
                     </div>
                     <p class="operation-feedback" id="bill-feedback" role="status" aria-live="polite"></p>
                     <section class="panel" aria-label="Bills list">
+                        <div class="panel-header">
+                            <h2>All bills</h2>
+                            <span class="field-hint" id="bills-count" role="status" aria-live="polite"></span>
+                        </div>
                         <div class="table-wrap">
                             <table>
                                 <thead>
@@ -32,6 +36,13 @@
                                     <tr><td class="empty-state loading" colspan="8">Loading bills…</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                        <div class="table-pagination" id="bills-pagination" aria-label="Bills list pagination" hidden>
+                            <span id="bills-page-status" role="status" aria-live="polite"></span>
+                            <div>
+                                <button class="button secondary btn" id="bills-previous-page" type="button" aria-label="Previous bills page">Previous</button>
+                                <button class="button secondary btn" id="bills-next-page" type="button" aria-label="Next bills page">Next</button>
+                            </div>
                         </div>
                     </section>
                 </section>
