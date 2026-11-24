@@ -52,6 +52,26 @@ test("bill creation rejects payment greater than its item total", async () => {
     assert.match((await response.json()).error, /paid cannot be greater than the bill total/);
 });
 
+test("bill creation rejects duplicate IMEIs before accessing D1", async () => {
+    const response = await worker.fetch(new Request("https://billwise.test/api/bills", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+            billNo: "INV-DUPLICATE-IMEI",
+            billDate: "2026-11-24",
+            customerId: 1,
+            customerName: "Sample Customer",
+            items: [
+                { productCode: "P001", productName: "Phone One", imei: "123456789012345", amount: 1200 },
+                { productCode: "P002", productName: "Phone Two", imei: "123456789012345", amount: 1500 },
+            ],
+        }),
+    }), env);
+
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /IMEI must be unique within the bill/);
+});
+
 test("bill creation accepts manually entered items outside the product catalog", async () => {
     const manualBillEnv = {
         DB: {
@@ -195,6 +215,45 @@ test("customer details include their creation date", async () => {
 
     assert.equal(response.status, 200);
     assert.equal((await response.json()).createdAt, "2026-11-23T12:00:00.000Z");
+});
+
+test("customer directory returns the requested page with a total count", async () => {
+    const customerEnv = {
+        DB: {
+            prepare(query) {
+                return {
+                    bind(...values) {
+                        return {
+                            all: async () => {
+                                if (query.includes("COUNT(*)")) return { results: [{ total: 12 }] };
+                                assert.match(query, /LIMIT \? OFFSET \?/);
+                                assert.deepEqual(values, [10, 10]);
+                                return {
+                                    results: [
+                                        { id: 11, name: "Customer 11" },
+                                        { id: 12, name: "Customer 12" },
+                                    ],
+                                };
+                            },
+                        };
+                    },
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/customers?page=2"), customerEnv);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        items: [
+            { id: 11, name: "Customer 11" },
+            { id: 12, name: "Customer 12" },
+        ],
+        page: 2,
+        pageSize: 10,
+        total: 12,
+        pageCount: 2,
+    });
 });
 
 test("product code suggestions include saved catalog and bill item codes", async () => {

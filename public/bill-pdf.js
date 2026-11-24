@@ -115,7 +115,7 @@
     }
 
     function drawInvoicePair(doc, label, value, x, y, width, valueColor) {
-        doc.setFont("helvetica", "normal");
+        doc.setFont("NotoSans", "normal");
         doc.setFontSize(8);
         doc.setTextColor(102, 119, 134);
         doc.text(label, x, y);
@@ -124,7 +124,7 @@
         doc.text(String(value || "—"), x + width, y, { align: "right" });
     }
 
-    async function download(bill) {
+    async function createDocument(bill) {
         if (!bill || !Array.isArray(bill.items) || bill.items.length === 0) {
             throw new Error("This bill has no items to export.");
         }
@@ -133,6 +133,7 @@
         const [font, logo] = await Promise.all([getPdfFont(), getLogo()]);
         doc.addFileToVFS("NotoSans.ttf", font);
         doc.addFont("NotoSans.ttf", "NotoSans", "normal");
+        doc.addFont("NotoSans.ttf", "NotoSans", "bold");
         doc.setFont("NotoSans", "normal");
 
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -167,7 +168,7 @@
         doc.line(margin, 14, pageWidth - margin, 14);
         doc.addImage(logo, "PNG", margin, 19, 17, 17);
         doc.setTextColor(...ink);
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(15);
         doc.text(shopInfo.name, margin + 22, 24);
         doc.setTextColor(...brand);
@@ -178,7 +179,7 @@
         doc.setTextColor(...muted);
         doc.text(shopInfo.address, margin + 22, 35);
         doc.text(`Mobile: ${shopInfo.mobile}`, margin + 22, 40);
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setTextColor(...ink);
         doc.setFontSize(20);
         doc.text("INVOICE", pageWidth - margin, 24, { align: "right" });
@@ -195,33 +196,37 @@
         const addressWidth = leftWidth - 8;
         doc.setFont("NotoSans", "normal");
         doc.setFontSize(8);
-        const addressLines = doc.splitTextToSize(String(bill.customerAddress || "—"), addressWidth);
-        const phoneOffset = 20 + addressLines.length * 4.2 + 1;
+        const addressLines = doc.splitTextToSize(String(bill.customerAddress || "—").replace(/\s+/g, " ").trim(), addressWidth);
+        const addressTop = 20;
+        const addressLineHeight = 4.2;
+        const phoneOffset = addressTop + addressLines.length * addressLineHeight + 1;
         const metaHeight = Math.max(34, phoneOffset + 5);
         doc.setFillColor(...pale);
         doc.setDrawColor(...line);
         doc.roundedRect(margin, metaY, contentWidth, metaHeight, 1.5, 1.5, "FD");
         doc.line(rightX, metaY, rightX, metaY + metaHeight);
 
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(8);
         doc.setTextColor(...muted);
         doc.text("BILL TO", margin + 4, metaY + 6);
         doc.text("INVOICE DETAILS", rightX + 4, metaY + 6);
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(10);
         doc.setTextColor(...ink);
         doc.text(String(bill.customerName || "—"), margin + 4, metaY + 14);
         doc.setFont("NotoSans", "normal");
         doc.setFontSize(8);
         doc.setTextColor(...ink);
-        doc.text(addressLines, margin + 4, metaY + 20);
+        doc.text(addressLines, margin + 4, metaY + addressTop);
         doc.text(`Mobile: ${bill.customerMobile || "—"}`, margin + 4, metaY + phoneOffset);
 
         const detailWidth = leftWidth - 8;
         drawInvoicePair(doc, "Bill No.", bill.billNo, rightX + 4, metaY + 14, detailWidth - 4, ink);
         drawInvoicePair(doc, "Bill Date", dateLabel(bill.billDate), rightX + 4, metaY + 21, detailWidth - 4, ink);
-        drawInvoicePair(doc, "Payment Due Date", dateLabel(bill.dueDate), rightX + 4, metaY + 28, detailWidth - 4, amber);
+        if (bill.dueDate) {
+            drawInvoicePair(doc, "Payment Due Date", dateLabel(bill.dueDate), rightX + 4, metaY + 28, detailWidth - 4, amber);
+        }
 
         doc.autoTable({
             startY: metaY + metaHeight + 6,
@@ -261,8 +266,8 @@
             columnStyles: {
                 0: { cellWidth: 10, halign: "center" },
                 1: { cellWidth: 59 },
-                2: { cellWidth: 28, font: "helvetica", fontStyle: "bold" },
-                3: { cellWidth: 42, font: "courier", fontSize: 7.2 },
+                2: { cellWidth: 28, font: "NotoSans", fontStyle: "bold" },
+                3: { cellWidth: 42, font: "NotoSans", fontSize: 7.2 },
                 4: { cellWidth: 35, halign: "right" },
             },
         });
@@ -282,7 +287,7 @@
         doc.rect(margin, summaryY, wordsWidth, wordsHeight, "F");
         doc.setFillColor(...brand);
         doc.rect(margin, summaryY, 1.2, wordsHeight, "F");
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(...muted);
         doc.text("AMOUNT IN WORDS", margin + 4, summaryY + 5.5);
@@ -290,11 +295,11 @@
         doc.setFontSize(8.5);
         doc.setTextColor(...ink);
         doc.text(amountWordsLines, margin + 4, summaryY + 11);
-        doc.setFont("helvetica", "normal");
+        doc.setFont("NotoSans", "normal");
         doc.setFontSize(8);
         doc.setTextColor(...muted);
         doc.text("Total Quantity:", margin, summaryY + wordsHeight + 6);
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setTextColor(...ink);
         doc.text(`${bill.items.length} Units`, margin + 24, summaryY + wordsHeight + 6);
 
@@ -316,21 +321,21 @@
         doc.line(totalsX, summaryY + 18, totalsX + totalsWidth, summaryY + 18);
         doc.setFillColor(...brandDark);
         doc.rect(totalsX, summaryY + 18, totalsWidth, 9, "F");
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(8);
         doc.setTextColor(255, 255, 255);
         doc.text("Balance Due", totalsX + 4, summaryY + 24);
         doc.setFont("NotoSans", "normal");
         doc.text(currency.format(due), totalsX + totalsWidth - 4, summaryY + 24, { align: "right" });
 
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(...ink);
         doc.text(`For ${shopInfo.name}`, totalsX + totalsWidth, summaryY + 35, { align: "right" });
         doc.setDrawColor(...muted);
         doc.setLineWidth(0.25);
         doc.line(totalsX + totalsWidth - 50, summaryY + 45, totalsX + totalsWidth, summaryY + 45);
-        doc.setFont("helvetica", "bold");
+        doc.setFont("NotoSans", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(...ink);
         doc.text("Authorised Signature", totalsX + totalsWidth, summaryY + 50, { align: "right" });
@@ -347,9 +352,55 @@
             doc.text(`${shopInfo.name} · ${shopInfo.business}`, margin, pageHeight - 10);
             doc.text(`Page ${page} of ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: "right" });
         }
-        const safeBillNo = String(bill.billNo || "bill").replace(/[^\w.-]+/g, "-");
-        doc.save(`pb-ledger-${safeBillNo}.pdf`);
+        return doc;
     }
 
-    window.BillPdf = Object.freeze({ amountInWords, download, shopInfo });
+    function fileName(bill) {
+        const safeBillNo = String(bill.billNo || "bill").replace(/[^\w.-]+/g, "-");
+        return `pb-ledger-${safeBillNo}.pdf`;
+    }
+
+    async function download(bill) {
+        const doc = await createDocument(bill);
+        doc.save(fileName(bill));
+    }
+
+    function shareText(bill) {
+        const total = currency.format(Number(bill.total) || 0);
+        const due = currency.format(Number(bill.due) || 0);
+        return `${shopInfo.name}\nBill ${bill.billNo}\nTotal: ${total}\nBalance due: ${due}`;
+    }
+
+    async function share(bill) {
+        const canShareFile = typeof File === "function"
+            && typeof navigator.share === "function"
+            && typeof navigator.canShare === "function"
+            && navigator.canShare({ files: [new File([], "bill.pdf", { type: "application/pdf" })] });
+        if (!canShareFile) {
+            window.open(`https://wa.me/?text=${encodeURIComponent(shareText(bill))}`, "_blank", "noopener,noreferrer");
+        }
+
+        const doc = await createDocument(bill);
+        const name = fileName(bill);
+        if (canShareFile) {
+            const file = new File([doc.output("blob")], name, { type: "application/pdf" });
+            if (navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: `Bill ${bill.billNo}`,
+                        text: shareText(bill),
+                    });
+                    return "shared";
+                } catch (error) {
+                    if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
+                    throw error;
+                }
+            }
+        }
+        doc.save(name);
+        return "downloaded";
+    }
+
+    window.BillPdf = Object.freeze({ amountInWords, download, share, shopInfo });
 })();

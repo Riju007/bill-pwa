@@ -15,6 +15,11 @@ let productNames = [];
 let addedItems = [];
 let customerSearchTimer;
 let productSearchTimer;
+let customerDirectoryQuery = "";
+let customerDirectoryPage = 1;
+let imeiScanStream = null;
+let imeiScanFrame = null;
+let imeiScanToken = 0;
 let editingBillId = null;
 let previewBillData = null;
 let savedBillData = null;
@@ -107,7 +112,8 @@ function fieldIsValid(field) {
 
 function validateItemRow(row, focusInvalid = true) {
     const fields = [...row.querySelectorAll("input, select, textarea")].filter((field) => field.willValidate);
-    const errors = new Map(fields.map((field) => [field, itemFieldError(field)]));
+    const editingIndex = row.dataset.editingIndex === undefined ? null : Number(row.dataset.editingIndex);
+    const errors = new Map(fields.map((field) => [field, itemFieldError(field, editingIndex)]));
     const invalidFields = fields.filter((field) => errors.get(field));
     for (const field of fields) {
         const error = field.closest(".item-field").querySelector(".item-field-error");
@@ -126,13 +132,16 @@ function validateItemRow(row, focusInvalid = true) {
     return invalidFields.length === 0;
 }
 
-function itemFieldError(field) {
+function itemFieldError(field, editingIndex = null) {
     const value = String(field.value).trim();
     const label = field.closest(".item-field").querySelector("label").textContent.replace(/\s*\*$/, "").trim();
 
     if (field.dataset.field === "imei") {
         if (!value) return "IMEI is required and must be exactly 15 digits (0-9 only).";
-        return /^\d{15}$/.test(value) ? "" : "IMEI must be exactly 15 digits (0-9 only).";
+        if (!/^\d{15}$/.test(value)) return "IMEI must be exactly 15 digits (0-9 only).";
+        return addedItems.some((item, index) => index !== editingIndex && item.imei === value)
+            ? "This IMEI is already used by another item in this bill."
+            : "";
     }
     if (field.dataset.field === "amount" && field.validity.badInput) return "Enter a valid amount.";
     if (!value) return `${label} is required.`;
@@ -438,6 +447,100 @@ function attachItemSuggestions(input, wrapper, field) {
     });
 }
 
+function stopImeiScanner() {
+    imeiScanToken++;
+    if (imeiScanFrame !== null) cancelAnimationFrame(imeiScanFrame);
+    imeiScanFrame = null;
+    if (imeiScanStream) imeiScanStream.getTracks().forEach((track) => track.stop());
+    imeiScanStream = null;
+    const video = document.querySelector("#imei-scanner-video");
+    video.pause();
+    video.srcObject = null;
+}
+
+async function startImeiScanner(input) {
+    const BarcodeScanner = window.BarcodeDetector;
+    if (typeof BarcodeScanner !== "function" || !navigator.mediaDevices?.getUserMedia) {
+        showToast("Camera barcode scanning is not supported here. Enter the 15-digit IMEI manually.", "error");
+        return;
+    }
+
+    let detector;
+    try {
+        if (typeof BarcodeScanner.getSupportedFormats === "function") {
+            const available = await BarcodeScanner.getSupportedFormats();
+            const formats = ["code_128", "qr_code", "data_matrix", "pdf417", "ean_13"]
+                .filter((format) => available.includes(format));
+            if (!formats.length) throw new Error("No supported IMEI barcode formats were found.");
+            detector = new BarcodeScanner({ formats });
+        } else {
+            detector = new BarcodeScanner();
+        }
+    } catch (error) {
+        showToast(`Could not initialize the barcode scanner: ${error.message}`, "error");
+        return;
+    }
+
+    stopImeiScanner();
+    const token = imeiScanToken;
+    const dialog = document.querySelector("#imei-scanner-dialog");
+    const video = document.querySelector("#imei-scanner-video");
+    const status = document.querySelector("#imei-scanner-status");
+    status.textContent = "Allow camera access, then point the camera at the IMEI barcode.";
+    dialog.showModal();
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { facingMode: { ideal: "environment" } },
+        });
+        if (token !== imeiScanToken) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+        }
+        imeiScanStream = stream;
+        video.srcObject = stream;
+        await video.play();
+        status.textContent = "Point the camera at the 15-digit IMEI barcode.";
+
+        const scanFrame = async () => {
+            if (token !== imeiScanToken || !imeiScanStream) return;
+            try {
+                const barcodes = await detector.detect(video);
+                const rawValue = barcodes.find((barcode) => barcode.rawValue)?.rawValue;
+                if (rawValue) {
+                    const digits = rawValue.replace(/\D/g, "");
+                    if (/^\d{15}$/.test(digits)) {
+                        input.value = digits;
+                        input.dispatchEvent(new Event("input", { bubbles: true }));
+                        stopImeiScanner();
+                        dialog.close();
+                        input.focus();
+                        showToast("IMEI scanned.");
+                        return;
+                    }
+                    status.textContent = "That barcode does not contain exactly 15 IMEI digits. Try another label.";
+                }
+            } catch (error) {
+                if (token === imeiScanToken) {
+                    stopImeiScanner();
+                    dialog.close();
+                    showToast(`Could not scan the barcode: ${error.message}`, "error");
+                }
+                return;
+            }
+            if (token === imeiScanToken) imeiScanFrame = requestAnimationFrame(scanFrame);
+        };
+        scanFrame();
+    } catch (error) {
+        if (token === imeiScanToken) {
+            stopImeiScanner();
+            dialog.close();
+            showToast(`Could not access the camera: ${error.message}`, "error");
+        }
+    }
+}
+
 function addItem(values = {}, editingIndex = null) {
     const existingRow = itemRows.firstElementChild;
     if (existingRow) {
@@ -447,6 +550,7 @@ function addItem(values = {}, editingIndex = null) {
 
     const row = document.createElement("div");
     row.className = "item-row";
+    if (editingIndex !== null) row.dataset.editingIndex = String(editingIndex);
     const addField = (field, label, control) => {
         const wrapper = document.createElement("div");
         wrapper.className = "item-field";
@@ -465,7 +569,21 @@ function addItem(values = {}, editingIndex = null) {
         error.id = `${controlId}-error`;
         error.setAttribute("role", "alert");
         error.hidden = true;
-        wrapper.append(labelElement, control, error);
+        if (field === "imei") {
+            const inputAction = document.createElement("div");
+            inputAction.className = "item-input-action";
+            const scan = document.createElement("button");
+            scan.className = "imei-scan-button";
+            scan.type = "button";
+            scan.setAttribute("aria-label", "Scan IMEI barcode");
+            scan.title = "Scan IMEI barcode";
+            scan.innerHTML = '<i class="bi bi-upc-scan" aria-hidden="true"></i>';
+            scan.addEventListener("click", () => startImeiScanner(control));
+            inputAction.append(control, scan);
+            wrapper.append(labelElement, inputAction, error);
+        } else {
+            wrapper.append(labelElement, control, error);
+        }
         if (field === "productName" || field === "productCode") {
             attachItemSuggestions(control, wrapper, field);
         }
@@ -648,6 +766,7 @@ function showBillDetails(bill) {
     savedBillData = bill;
     document.querySelector("#bill-detail-feedback").textContent = "";
     document.querySelector("#download-saved-bill").disabled = false;
+    document.querySelector("#share-saved-bill").disabled = false;
     const content = document.querySelector("#bill-detail-content");
     content.replaceChildren();
 
@@ -656,11 +775,11 @@ function showBillDetails(bill) {
     const fields = [
         ["Bill number", bill.billNo],
         ["Bill date", dateLabel(bill.billDate)],
-        ["Payment Due date", dateLabel(bill.dueDate)],
         ["Customer", bill.customerName],
         ["Mobile", bill.customerMobile || "—"],
         ["Address", bill.customerAddress || "—"],
     ];
+    if (bill.dueDate) fields.splice(2, 0, ["Payment Due date", dateLabel(bill.dueDate)]);
     for (const [label, value] of fields) {
         const block = document.createElement("div");
         block.textContent = label;
@@ -716,6 +835,7 @@ async function openBillDetails(billId) {
     const content = document.querySelector("#bill-detail-content");
     savedBillData = null;
     document.querySelector("#download-saved-bill").disabled = true;
+    document.querySelector("#share-saved-bill").disabled = true;
     document.querySelector("#bill-detail-feedback").textContent = "";
     content.replaceChildren();
     const loading = document.createElement("p");
@@ -1152,19 +1272,30 @@ function showDirectoryMessage(target, columnCount, text) {
     target.append(row);
 }
 
-async function loadCustomerDirectory(query = "") {
+async function loadCustomerDirectory(query = customerDirectoryQuery, page = 1) {
     const target = document.querySelector("#customer-list");
     const count = document.querySelector("#customer-count");
+    const pagination = document.querySelector("#customer-pagination");
+    const pageStatus = document.querySelector("#customer-page-status");
+    customerDirectoryQuery = query;
     try {
-        const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
-        const results = await api(`/api/customers${suffix}`);
-        count.textContent = `${results.length} shown${results.length === 100 ? " · max 100" : ""}`;
-        if (!results.length) {
+        const params = new URLSearchParams({ page: String(page) });
+        if (query) params.set("q", query);
+        const result = await api(`/api/customers?${params}`);
+        customerDirectoryPage = result.page;
+        const first = result.total ? (result.page - 1) * result.pageSize + 1 : 0;
+        const last = Math.min(result.page * result.pageSize, result.total);
+        count.textContent = `${result.total} ${result.total === 1 ? "customer" : "customers"}`;
+        pageStatus.textContent = `Showing ${first}–${last} of ${result.total} · Page ${result.page} of ${result.pageCount}`;
+        pagination.hidden = result.pageCount <= 1;
+        document.querySelector("#customer-previous-page").disabled = result.page <= 1;
+        document.querySelector("#customer-next-page").disabled = result.page >= result.pageCount;
+        if (!result.items.length) {
             showDirectoryMessage(target, 5, query ? "No customers match your search." : "No customers have been saved yet.");
             return;
         }
         target.replaceChildren();
-        for (const customer of results) {
+        for (const customer of result.items) {
             const row = document.createElement("tr");
             const nameCell = document.createElement("td");
             const nameLink = document.createElement("button");
@@ -1188,6 +1319,7 @@ async function loadCustomerDirectory(query = "") {
         }
     } catch (error) {
         count.textContent = "";
+        pagination.hidden = true;
         showDirectoryMessage(target, 5, `Could not load customers: ${error.message}`);
     }
 }
@@ -1373,6 +1505,15 @@ function previewBill() {
         setMessage("IMEI / serial must be exactly 15 numeric digits.", "error");
         return;
     }
+    const seenImeis = new Set();
+    if (items.some((item) => {
+        if (seenImeis.has(item.imei)) return true;
+        seenImeis.add(item.imei);
+        return false;
+    })) {
+        setMessage("Each IMEI must be unique within the bill.", "error");
+        return;
+    }
     if (items.some((item) => item.amount < 1000 || item.amount > 500000)) {
         setMessage("Item amount must be between ₹1,000 and ₹5,00,000.", "error");
         return;
@@ -1398,6 +1539,7 @@ function previewBill() {
     };
     document.querySelector("#preview-feedback").textContent = "";
     document.querySelector("#download-preview").disabled = false;
+    document.querySelector("#share-preview").disabled = false;
     const container = document.querySelector("#preview-content");
     container.replaceChildren();
     const metadata = document.createElement("div");
@@ -1405,11 +1547,11 @@ function previewBill() {
     const fields = [
         ["Bill number", previewBillData.billNo],
         ["Bill date", dateLabel(document.querySelector("#bill-date").value)],
-        ["Payment due date", dateLabel(previewBillData.dueDate)],
         ["Customer", previewBillData.customerName],
         ["Mobile", previewBillData.customerMobile || "—"],
         ["Address", previewBillData.customerAddress || "—"],
     ];
+    if (previewBillData.dueDate) fields.splice(2, 0, ["Payment due date", dateLabel(previewBillData.dueDate)]);
     for (const [label, value] of fields) {
         const block = document.createElement("div");
         block.textContent = label;
@@ -1473,6 +1615,31 @@ document.querySelector("#close-preview").addEventListener("click", () => {
 });
 document.querySelector("#print-preview").addEventListener("click", () => window.print());
 document.querySelector("#print-saved-bill").addEventListener("click", () => window.print());
+async function shareBillPdf(bill, button, feedback) {
+    button.disabled = true;
+    feedback.textContent = "";
+    try {
+        const result = await window.BillPdf.share(bill);
+        if (result === "shared") {
+            feedback.textContent = "PDF shared. Choose WhatsApp from the share menu.";
+            showToast(feedback.textContent);
+        } else if (result === "downloaded") {
+            feedback.textContent = "PDF downloaded. Attach it in WhatsApp.";
+            showToast(feedback.textContent);
+        }
+    } catch (error) {
+        feedback.textContent = `Could not share PDF: ${error.message}`;
+        showToast(error.message, "error");
+    } finally {
+        button.disabled = button.id === "share-saved-bill" && !savedBillData;
+    }
+}
+document.querySelector("#share-preview").addEventListener("click", (event) => {
+    shareBillPdf(previewBillData, event.currentTarget, document.querySelector("#preview-feedback"));
+});
+document.querySelector("#share-saved-bill").addEventListener("click", (event) => {
+    shareBillPdf(savedBillData, event.currentTarget, document.querySelector("#bill-detail-feedback"));
+});
 document.querySelector("#download-preview").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     const feedback = document.querySelector("#preview-feedback");
@@ -1517,6 +1684,12 @@ document.querySelector("#customer-search").addEventListener("input", (event) => 
         250,
     );
 });
+document.querySelector("#customer-previous-page").addEventListener("click", () => {
+    loadCustomerDirectory(customerDirectoryQuery, customerDirectoryPage - 1);
+});
+document.querySelector("#customer-next-page").addEventListener("click", () => {
+    loadCustomerDirectory(customerDirectoryQuery, customerDirectoryPage + 1);
+});
 /* Product catalog page controls are paused; keep handlers for later restoration.
 document.querySelector("#product-search").addEventListener("input", (event) => {
     window.clearTimeout(productSearchTimer);
@@ -1537,6 +1710,10 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
         document.querySelector(`#${button.dataset.closeDialog}`).close();
     });
 });
+document.querySelector("#close-imei-scanner").addEventListener("click", () => {
+    document.querySelector("#imei-scanner-dialog").close();
+});
+document.querySelector("#imei-scanner-dialog").addEventListener("close", stopImeiScanner);
 document.querySelector("#customer-form").addEventListener("submit", (event) => {
     saveDirectoryEntry(event, {
         button: "#save-customer-button",

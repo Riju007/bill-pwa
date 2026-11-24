@@ -132,6 +132,30 @@ const server = createServer(async (request, response) => {
         return;
     }
     if (url.pathname === "/api/customers" && request.method === "GET") {
+        const pageValue = url.searchParams.get("page");
+        if (pageValue !== null) {
+            const requestedPage = Number(pageValue);
+            if (!Number.isSafeInteger(requestedPage) || requestedPage < 1) {
+                json(response, { error: "page must be a positive integer" }, 400);
+                return;
+            }
+            const query = url.searchParams.get("q")?.trim().toLowerCase();
+            const matches = customers.filter((entry) => !query
+                || entry.code === query
+                || entry.mobile === query
+                || entry.name.toLowerCase().includes(query));
+            const pageSize = 10;
+            const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+            const page = Math.min(requestedPage, pageCount);
+            json(response, {
+                items: matches.slice((page - 1) * pageSize, page * pageSize),
+                page,
+                pageSize,
+                total: matches.length,
+                pageCount,
+            });
+            return;
+        }
         json(response, customers);
         return;
     }

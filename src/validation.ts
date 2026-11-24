@@ -112,6 +112,7 @@ export function parseBill(b: Record<string, unknown>): Parsed<BillInput> {
     }
 
     const items: BillItemInput[] = [];
+    const imeis = new Set<string>();
     for (const rawItem of b.items) {
         if (typeof rawItem !== "object" || rawItem === null || Array.isArray(rawItem)) {
             return { ok: false, error: "Each item must be an object" };
@@ -130,6 +131,10 @@ export function parseBill(b: Record<string, unknown>): Parsed<BillInput> {
         if (!imei || !/^\d{15}$/.test(imei)) {
             return { ok: false, error: "imei must be exactly 15 numeric digits" };
         }
+        if (imeis.has(imei)) {
+            return { ok: false, error: "Each IMEI must be unique within the bill" };
+        }
+        imeis.add(imei);
         if (!Number.isFinite(amount) || amount < 1000 || amount > 500000) {
             return { ok: false, error: "Each item amount must be from 1000 to 500000" };
         }

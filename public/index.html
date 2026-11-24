@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/vendor/bootstrap.min.css">
     <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/css/app.css">
+    <link rel="preload" href="/vendor/fonts/NotoSans-Variable.ttf" as="font" type="font/ttf" crossorigin>
     <script src="/js/theme-init.js"></script>
 
 
@@ -64,6 +65,11 @@
                         <img src="/icons/pb-ledger.svg" alt="">
                         <span>PB Ledger</span>
                     </div>
+                </div>
+                <div class="business-heading" aria-label="Pabitra's Online Services business information">
+                    <p class="business-heading-name">Pabitra's Online Services</p>
+                    <p class="business-heading-type">ONLINE MOBILE WHOLESALE</p>
+                    <p class="business-heading-address">Arambagh Link Road, West Bengal</p>
                 </div>
                 <div class="topbar-actions">
                     <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false" title="Switch to dark theme">
@@ -122,6 +128,7 @@
         </div>
         <div class="bill-output-actions">
             <button class="button secondary btn" id="print-preview" type="button"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+            <button class="button secondary btn" id="share-preview" type="button" title="Share the PDF using WhatsApp or another app"><i class="bi bi-whatsapp" aria-hidden="true"></i> WhatsApp</button>
             <button class="button primary btn" id="download-preview" type="button"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</button>
         </div>
         <p class="bill-output-feedback" id="preview-feedback" role="status" aria-live="polite"></p>
@@ -135,6 +142,7 @@
         </div>
         <div class="bill-output-actions">
             <button class="button secondary btn" id="print-saved-bill" type="button"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+            <button class="button secondary btn" id="share-saved-bill" type="button" title="Share the PDF using WhatsApp or another app"><i class="bi bi-whatsapp" aria-hidden="true"></i> WhatsApp</button>
             <button class="button primary btn" id="download-saved-bill" type="button"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</button>
         </div>
         <p class="bill-output-feedback" id="bill-detail-feedback" role="status" aria-live="polite"></p>
@@ -155,6 +163,17 @@
             <button class="button ghost" type="button" data-close-dialog="product-detail-dialog" aria-label="Close product details">Close</button>
         </div>
         <div class="preview-content" id="product-detail-content" aria-live="polite"></div>
+    </dialog>
+
+    <dialog id="imei-scanner-dialog" aria-labelledby="imei-scanner-title">
+        <div class="dialog-head">
+            <h2 id="imei-scanner-title">Scan IMEI barcode</h2>
+            <button class="button ghost" id="close-imei-scanner" type="button" aria-label="Close IMEI scanner">Close</button>
+        </div>
+        <div class="dialog-body">
+            <video class="imei-scanner-video" id="imei-scanner-video" autoplay playsinline aria-label="Camera view for scanning an IMEI barcode"></video>
+            <p class="dialog-message" id="imei-scanner-status" role="status" aria-live="polite">Point the camera at the 15-digit IMEI barcode.</p>
+        </div>
     </dialog>
 
     <dialog id="confirm-dialog" aria-labelledby="confirm-title">

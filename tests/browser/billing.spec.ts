@@ -7,6 +7,24 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
 
     await expect(page).toHaveTitle("PB Ledger");
     await expect(page.locator(".brand-name")).toHaveText("PB Ledger");
+    await expect(page.locator(".business-heading-name")).toHaveText("Pabitra's Online Services");
+    await expect(page.locator(".business-heading-type")).toHaveText("ONLINE MOBILE WHOLESALE");
+    await expect(page.locator(".business-heading-address")).toHaveText("Arambagh Link Road, West Bengal");
+    const headerCenter = await page.locator(".business-heading").evaluate((heading) => {
+        const headingRect = heading.getBoundingClientRect();
+        const headerRect = heading.parentElement!.getBoundingClientRect();
+        return Math.abs(headingRect.left + headingRect.width / 2 - (headerRect.left + headerRect.width / 2));
+    });
+    expect(headerCenter).toBeLessThan(2);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator(".business-heading")).toBeVisible();
+    const mobileHeaderCenter = await page.locator(".business-heading").evaluate((heading) => {
+        const headingRect = heading.getBoundingClientRect();
+        const headerRect = heading.parentElement!.getBoundingClientRect();
+        return Math.abs(headingRect.left + headingRect.width / 2 - (headerRect.left + headerRect.width / 2));
+    });
+    expect(mobileHeaderCenter).toBeLessThan(2);
+    await page.setViewportSize({ width: 1280, height: 800 });
     await expect(page.locator(".sidebar-note")).toHaveCount(0);
     await expect(page.locator("#today-label")).toHaveCount(0);
     await expect(page.locator(".owner-label")).toHaveCount(0);
@@ -55,6 +73,7 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
     expect((await page.request.get("/icons/icon-192.png")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap.min.css")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap-icons/bootstrap-icons.min.css")).ok()).toBeTruthy();
+    expect((await page.request.get("/vendor/fonts/NotoSans-Variable.ttf")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap-icons/fonts/bootstrap-icons.woff2")).ok()).toBeTruthy();
     expect((await page.request.get("/bill-pdf.js")).ok()).toBeTruthy();
     expect((await page.request.get("/icons/pb-ledger.svg")).ok()).toBeTruthy();
@@ -62,6 +81,9 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
     await expect(page.locator(".sidebar .nav-button.active .bi")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.fonts.check("16px bootstrap-icons"))).toBeTruthy();
+    await page.evaluate(() => document.fonts.load('600 16px "Noto Sans"'));
+    expect(await page.evaluate(() => document.fonts.check('600 16px "Noto Sans"'))).toBeTruthy();
+    expect(await page.locator("body").evaluate((body) => getComputedStyle(body).fontFamily)).toContain('"Noto Sans"');
     const wordExamples = await page.evaluate(() => {
         const billPdf = (window as Window & { BillPdf: { amountInWords: (value: number) => string } }).BillPdf;
         return [
@@ -91,6 +113,7 @@ test("adds, edits, and deletes manually entered bill items", async ({ page }) =>
         page.locator('#item-rows input[data-field="amount"]'),
     ];
     for (const field of fields) await expect(field).toHaveAttribute("required", "");
+    await expect(page.getByRole("button", { name: "Scan IMEI barcode" })).toHaveCount(1);
     await fields[0].fill("Manual Phone");
     await fields[1].fill("MAN-001");
     await fields[2].fill("12345678901234A");
@@ -121,17 +144,36 @@ test("adds, edits, and deletes manually entered bill items", async ({ page }) =>
     expect(actionLayout.actionsRight).toBeLessThanOrEqual(actionLayout.rowRight);
     expect(Math.abs(actionLayout.buttonWidths[0] - actionLayout.buttonWidths[1])).toBeLessThan(1);
     expect(actionLayout.buttonWidths[0] + actionLayout.buttonWidths[1]).toBeGreaterThan(actionLayout.actionsWidth - 10);
+    const amountTopBeforeValidation = await page.locator(".item-row").evaluate((row) => {
+        const amount = row.querySelector('input[data-field="amount"]')!;
+        return amount.getBoundingClientRect().top - row.getBoundingClientRect().top;
+    });
     await page.locator("#item-rows .draft-action.accept").click();
     await expect(page.locator('.item-field:has(input[data-field="imei"]) .item-field-error'))
         .toHaveText("IMEI must be exactly 15 digits (0-9 only).");
     await expect(page.locator('.item-field:has(input[data-field="amount"]) .item-field-error'))
         .toHaveText("Amount must be between ₹1,000 and ₹5,00,000.");
+    const amountTopAfterValidation = await page.locator(".item-row").evaluate((row) => {
+        const amount = row.querySelector('input[data-field="amount"]')!;
+        return amount.getBoundingClientRect().top - row.getBoundingClientRect().top;
+    });
+    expect(Math.abs(amountTopAfterValidation - amountTopBeforeValidation)).toBeLessThan(1);
     await fields[2].fill("123456789012345");
     await fields[3].fill("1250");
     await page.locator("#item-rows .draft-action.accept").click();
 
     let row = page.locator("#added-items-body tr").first();
     await expect(row.locator("td")).toHaveText(["1", "Manual Phone", "MAN-001", "123456789012345", "₹1,250.00", ""]);
+    await page.locator("#add-item").click();
+    await page.locator('#item-rows input[data-field="productName"]').fill("Duplicate Phone");
+    await page.locator('#item-rows input[data-field="productCode"]').fill("MAN-002");
+    await page.locator('#item-rows input[data-field="imei"]').fill("123456789012345");
+    await page.locator('#item-rows input[data-field="amount"]').fill("1500");
+    await page.locator("#item-rows .draft-action.accept").click();
+    await expect(page.locator('.item-field:has(input[data-field="imei"]) .item-field-error'))
+        .toHaveText("This IMEI is already used by another item in this bill.");
+    await page.locator("#item-rows .draft-action.reject").click();
+
     await row.getByRole("button", { name: "Edit Manual Phone" }).click();
     await expect(page.locator('#item-rows input[data-field="productName"]')).toHaveValue("Manual Phone");
     await page.locator('#item-rows input[data-field="amount"]').fill("1800");
@@ -140,6 +182,39 @@ test("adds, edits, and deletes manually entered bill items", async ({ page }) =>
     await expect(row.locator("td").nth(4)).toHaveText("₹1,800.00");
     await row.getByRole("button", { name: "Delete Manual Phone" }).click();
     await expect(page.locator("#added-items-body")).toContainText("No items added yet.");
+});
+
+test("scans a 15-digit IMEI barcode into the item form", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Create a bill" }).click();
+    await page.locator("#add-item").click();
+    await page.evaluate(() => {
+        Object.defineProperty(window, "BarcodeDetector", {
+            configurable: true,
+            value: class {
+                static async getSupportedFormats() {
+                    return ["code_128"];
+                }
+
+                async detect() {
+                    return [{ rawValue: "IMEI: 123456789012345" }];
+                }
+            },
+        });
+        Object.defineProperty(navigator, "mediaDevices", {
+            configurable: true,
+            value: { getUserMedia: async () => new MediaStream() },
+        });
+        Object.defineProperty(HTMLMediaElement.prototype, "play", {
+            configurable: true,
+            value: () => Promise.resolve(),
+        });
+    });
+
+    await page.getByRole("button", { name: "Scan IMEI barcode" }).click();
+    await expect(page.locator('#item-rows input[data-field="imei"]')).toHaveValue("123456789012345");
+    await expect(page.locator("#imei-scanner-dialog")).not.toBeVisible();
+    await expect(page.locator("#toast-region")).toContainText("IMEI scanned.");
 });
 
 test("announces validation errors inline", async ({ page }) => {
@@ -170,10 +245,13 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     await expect(page.locator("#preview-dialog")).toBeVisible();
     await expect(page.locator("#preview-content")).toContainText("DRAFT-100");
     await expect(page.locator("#preview-content")).toContainText("Sample Customer");
+    await expect(page.locator("#preview-content .preview-meta")).not.toContainText("Payment due date");
     await expect(page.locator("#preview-content .preview-items")).toContainText("Product Name");
     await expect(page.locator("#preview-content .preview-items")).toContainText("P001");
     await expect(page.locator("#preview-content .bill-print-header")).toContainText("Pabitra's Online Services");
     await expect(page.locator("#preview-content .bill-amount-words")).toContainText("Rupees One Thousand Two Hundred Fifty Only");
+    await expect(page.locator("#preview-content .preview-items th:first-child")).toHaveCSS("position", "sticky");
+    await expect(page.locator("#preview-content .preview-items th:first-child")).toHaveCSS("left", "0px");
 
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#download-preview").click();
@@ -187,6 +265,24 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     expect(pdf.includes(Buffer.from("/Subtype /Image"))).toBeTruthy();
     expect(pdf.toString("latin1")).toContain("Pabitra's Online Services - Bill DRAFT-100");
     expect(pdf.toString("latin1")).toContain("20B9");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+        Object.defineProperty(navigator, "canShare", {
+            configurable: true,
+            value: (data: { files?: File[] }) => Boolean(data.files?.length),
+        });
+        Object.defineProperty(navigator, "share", {
+            configurable: true,
+            value: async (data: { files: File[] }) => {
+                (window as Window & { sharedPdfName?: string }).sharedPdfName = data.files[0].name;
+            },
+        });
+    });
+    await page.locator("#share-preview").click();
+    await expect(page.locator("#preview-feedback")).toHaveText("PDF shared. Choose WhatsApp from the share menu.");
+    expect(await page.evaluate(() => (window as Window & { sharedPdfName?: string }).sharedPdfName))
+        .toBe("pb-ledger-DRAFT-100.pdf");
 
     await page.emulateMedia({ media: "print" });
     await expect(page.locator("#preview-dialog")).toBeVisible();
@@ -208,6 +304,52 @@ test("downloads saved bills with multiple pages", async ({ page }) => {
     const pdf = await readFile(path!);
     const pageCount = (pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length;
     expect(pageCount).toBeGreaterThan(1);
+});
+
+test("expands the PDF bill-to block for long addresses", async ({ page }) => {
+    await page.goto("/");
+    const result = await page.evaluate(async () => {
+        type PdfApi = {
+            autoTable(this: unknown, options: { startY: number }): unknown;
+            save(this: unknown, ...args: unknown[]): unknown;
+        };
+        const pdfWindow = window as Window & {
+            jspdf: { jsPDF: { API: PdfApi } };
+            BillPdf: { download: (bill: Record<string, unknown>) => Promise<void> };
+        };
+        const api = pdfWindow.jspdf.jsPDF.API;
+        const originalAutoTable = api.autoTable;
+        const originalSave = api.save;
+        const starts: number[] = [];
+        api.autoTable = function (options) {
+            starts.push(options.startY);
+            return originalAutoTable.call(this, options);
+        };
+        api.save = function () {
+            return this;
+        };
+        const bill = {
+            billNo: "LAYOUT-TEST",
+            billDate: "2026-11-24",
+            dueDate: null,
+            customerName: "Sample Customer",
+            customerMobile: "9876543210",
+            items: [{ productName: "Phone", productCode: "P001", imei: "123456789012345", amount: 1200 }],
+            total: 1200,
+            paid: 0,
+            due: 1200,
+        };
+        try {
+            await pdfWindow.BillPdf.download({ ...bill, customerAddress: "Short Road" });
+            await pdfWindow.BillPdf.download({ ...bill, customerAddress: "Long address, ".repeat(20) });
+            return starts;
+        } finally {
+            api.autoTable = originalAutoTable;
+            api.save = originalSave;
+        }
+    });
+
+    expect(result[1]).toBeGreaterThan(result[0]);
 });
 
 test("creates a customer from the directory and shows a confirmation", async ({ page }) => {
@@ -254,6 +396,47 @@ test("customer names open a detail popup with the creation date", async ({ page 
     await expect(page.locator("#customer-detail-content")).toContainText("Example Road");
     await expect(page.locator("#customer-detail-content")).toContainText("Created on");
     await expect(page.locator("#customer-detail-content")).toContainText("23 Nov 2026");
+});
+
+test("customer directory paginates results and resets pagination for search", async ({ page }) => {
+    const customers = Array.from({ length: 12 }, (_, index) => ({
+        id: index + 1,
+        code: `C${String(index + 1).padStart(3, "0")}`,
+        name: `Pagination Customer ${index + 1}`,
+        mobile: `900000${String(index + 1).padStart(4, "0")}`,
+        address: "Example Road",
+    }));
+    await page.route("**/api/customers?page=*", async (route) => {
+        const url = new URL(route.request().url());
+        const query = url.searchParams.get("q")?.toLowerCase();
+        const matches = customers.filter((customer) => !query || customer.name.toLowerCase().includes(query));
+        const pageSize = 10;
+        const pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
+        const currentPage = Math.min(Number(url.searchParams.get("page")), pageCount);
+        await route.fulfill({
+            json: {
+                items: matches.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+                page: currentPage,
+                pageSize,
+                total: matches.length,
+                pageCount,
+            },
+        });
+    });
+    await page.goto("/");
+    await page.locator('.sidebar [data-page="customers"]').click();
+
+    await expect(page.locator("#customer-list tr")).toHaveCount(10);
+    await expect(page.locator("#customer-page-status")).toContainText("Page 1 of 2");
+    await expect(page.locator("#customer-previous-page")).toBeDisabled();
+    await page.locator("#customer-next-page").click();
+    await expect(page.locator("#customer-list tr")).toHaveCount(2);
+    await expect(page.locator("#customer-list")).toContainText("Pagination Customer 11");
+    await expect(page.locator("#customer-page-status")).toContainText("Page 2 of 2");
+    await page.locator("#customer-search").fill("Pagination Customer 12");
+    await expect(page.locator("#customer-list tr")).toHaveCount(1);
+    await expect(page.locator("#customer-page-status")).toContainText("Page 1 of 1");
+    await expect(page.locator("#customer-pagination")).toBeHidden();
 });
 
 test("shows customer totals and every bill item across multiple bills", async ({ page }) => {
