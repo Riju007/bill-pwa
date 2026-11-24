@@ -256,6 +256,47 @@ test("customer directory returns the requested page with a total count", async (
     });
 });
 
+test("product directory returns the requested page with a total count", async () => {
+    const productEnv = {
+        DB: {
+            prepare(query) {
+                return {
+                    bind(...values) {
+                        return {
+                            all: async () => {
+                                if (query.includes("COUNT(*)")) return { results: [{ total: 12 }] };
+                                assert.match(query, /LIMIT \? OFFSET \?/);
+                                assert.deepEqual(values, [10, 10]);
+                                return { results: [{ id: 11, code: "P011", name: "Item 11" }, { id: 12, code: "P012", name: "Item 12" }] };
+                            },
+                        };
+                    },
+                };
+            },
+        },
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/products?page=2"), productEnv);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+        items: [
+            { id: 11, code: "P011", name: "Item 11" },
+            { id: 12, code: "P012", name: "Item 12" },
+        ],
+        page: 2,
+        pageSize: 10,
+        total: 12,
+        pageCount: 2,
+    });
+});
+
+test("product directory rejects an invalid page before accessing D1", async () => {
+    const response = await worker.fetch(new Request("https://billwise.test/api/products?page=0"), env);
+
+    assert.equal(response.status, 400);
+    assert.match((await response.json()).error, /positive integer/);
+});
+
 test("product code suggestions include saved catalog and bill item codes", async () => {
     const suggestionsEnv = {
         DB: {

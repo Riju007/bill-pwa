@@ -17,10 +17,14 @@ let customerSearchTimer;
 let productSearchTimer;
 let customerDirectoryQuery = "";
 let customerDirectoryPage = 1;
+let productDirectoryQuery = "";
+let productDirectoryPage = 1;
 let imeiScanStream = null;
 let imeiScanFrame = null;
 let imeiScanToken = 0;
 let editingBillId = null;
+let formSavedBillData = null;
+let savedBillSnapshot = null;
 let previewBillData = null;
 let savedBillData = null;
 let confirmResolver = null;
@@ -297,11 +301,9 @@ function setNavigation(page) {
     if (page === "customers") {
         loadCustomerDirectory(document.querySelector("#customer-search").value.trim());
     }
-    /* Product page navigation is paused; retain this route for later restoration.
     if (page === "products") {
-        loadProductDirectory(document.querySelector("#product-search").value.trim());
+        loadProductDirectory(productDirectoryQuery, productDirectoryPage);
     }
-    */
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -648,6 +650,7 @@ function addItem(values = {}, editingIndex = null) {
         row.remove();
         renderAddedItems();
         setMessage("");
+        refreshSavedBillActions();
     });
     actions.append(save, cancel);
     row.append(actions);
@@ -715,6 +718,48 @@ function readItems() {
     return addedItems.map((item) => ({ ...item }));
 }
 
+function currentFormSnapshot() {
+    return JSON.stringify({
+        billNo: document.querySelector("#bill-number").value.trim(),
+        billDate: document.querySelector("#bill-date").value,
+        dueDate: document.querySelector("#due-date").value || null,
+        customerId: customerSelect.value || null,
+        paid: Number(document.querySelector("#paid-amount").value) || 0,
+        items: readItems(),
+    });
+}
+
+function currentFormBillData() {
+    const customer = customers.find((entry) => String(entry.id) === customerSelect.value);
+    const items = readItems();
+    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    const paid = Number(document.querySelector("#paid-amount").value) || 0;
+    return {
+        id: editingBillId,
+        billNo: document.querySelector("#bill-number").value.trim(),
+        billDate: document.querySelector("#bill-date").value,
+        dueDate: document.querySelector("#due-date").value || null,
+        customerName: customer?.name || "",
+        customerMobile: customer?.mobile || null,
+        customerAddress: customer?.address || null,
+        items,
+        total,
+        paid,
+        due: Math.max(total - paid, 0),
+    };
+}
+
+function refreshSavedBillActions() {
+    const unchanged = Boolean(
+        formSavedBillData
+        && savedBillSnapshot !== null
+        && itemRows.childElementCount === 0
+        && currentFormSnapshot() === savedBillSnapshot,
+    );
+    document.querySelector("#saved-bill-form-actions").hidden = !unchanged;
+    if (!unchanged) document.querySelector("#saved-bill-form-feedback").textContent = "";
+}
+
 function updateTotals() {
     const items = readItems();
     const total = items.reduce((sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0), 0);
@@ -725,6 +770,7 @@ function updateTotals() {
     document.querySelector("#bill-due").textContent = money(Math.max(total - paid, 0));
     paidInput.max = total.toFixed(2);
     paidInput.setCustomValidity(paid > total ? "Paid amount cannot be greater than the total." : "");
+    refreshSavedBillActions();
 }
 
 function appendCell(row, value, className = "") {
@@ -767,6 +813,7 @@ function showBillDetails(bill) {
     document.querySelector("#bill-detail-feedback").textContent = "";
     document.querySelector("#download-saved-bill").disabled = false;
     document.querySelector("#share-saved-bill").disabled = false;
+    document.querySelector("#email-saved-bill").disabled = false;
     const content = document.querySelector("#bill-detail-content");
     content.replaceChildren();
 
@@ -836,6 +883,7 @@ async function openBillDetails(billId) {
     savedBillData = null;
     document.querySelector("#download-saved-bill").disabled = true;
     document.querySelector("#share-saved-bill").disabled = true;
+    document.querySelector("#email-saved-bill").disabled = true;
     document.querySelector("#bill-detail-feedback").textContent = "";
     content.replaceChildren();
     const loading = document.createElement("p");
@@ -1324,32 +1372,46 @@ async function loadCustomerDirectory(query = customerDirectoryQuery, page = 1) {
     }
 }
 
-async function loadProductDirectory(query = "") {
+async function loadProductDirectory(query = productDirectoryQuery, page = 1) {
     const target = document.querySelector("#product-list");
     const count = document.querySelector("#product-count");
+    const pagination = document.querySelector("#product-pagination");
     try {
-        const suffix = query ? `?q=${encodeURIComponent(query)}` : "";
-        const results = await api(`/api/products${suffix}`);
-        count.textContent = `${results.length} shown${results.length === 100 ? " · max 100" : ""}`;
-        if (!results.length) {
-            showDirectoryMessage(target, 3, query ? "No products match your search." : "No products have been saved yet.");
+        productDirectoryQuery = query;
+        const params = new URLSearchParams({ page: String(page) });
+        if (query) params.set("q", query);
+        const result = await api(`/api/products?${params}`);
+        productDirectoryPage = result.page;
+        count.textContent = `${result.total} item${result.total === 1 ? "" : "s"}`;
+        if (!result.items.length) {
+            pagination.hidden = true;
+            showDirectoryMessage(target, 2, query ? "No items match your search." : "No saved items yet.");
             return;
         }
         target.replaceChildren();
-        for (const product of results) {
+        for (const product of result.items) {
             const row = document.createElement("tr");
             appendCell(row, product.code || "—");
-            appendCell(row, product.name);
-            appendActions(row, [
-                { name: "view", label: `View ${product.name}`, onClick: () => openDirectoryDetails("product", product.id) },
-                { name: "edit", label: `Edit ${product.name}`, onClick: () => editDirectoryEntry("product", product.id) },
-                { name: "delete", label: `Delete ${product.name}`, onClick: () => deleteDirectoryEntry("product", product) },
-            ]);
+            const nameCell = document.createElement("td");
+            const nameButton = document.createElement("button");
+            nameButton.className = "directory-name-link";
+            nameButton.type = "button";
+            nameButton.textContent = product.name;
+            nameButton.setAttribute("aria-label", `View ${product.name} details`);
+            nameButton.addEventListener("click", () => openDirectoryDetails("product", product.id));
+            nameCell.append(nameButton);
+            row.append(nameCell);
             target.append(row);
         }
+        pagination.hidden = result.pageCount <= 1;
+        document.querySelector("#product-page-status").textContent =
+            `Page ${result.page} of ${result.pageCount}`;
+        document.querySelector("#product-previous-page").disabled = result.page <= 1;
+        document.querySelector("#product-next-page").disabled = result.page >= result.pageCount;
     } catch (error) {
         count.textContent = "";
-        showDirectoryMessage(target, 3, `Could not load products: ${error.message}`);
+        pagination.hidden = true;
+        showDirectoryMessage(target, 2, `Could not load items: ${error.message}`);
     }
 }
 
@@ -1360,6 +1422,7 @@ async function loadLookups() {
         api("/api/bills/product-names"),
     ]);
     if (customerResult.status === "rejected") throw customerResult.reason;
+    const selectedCustomerId = customerSelect.value;
     customers = customerResult.value;
     if (codeResult.status === "fulfilled") {
         productCodes = codeResult.value;
@@ -1381,6 +1444,8 @@ async function loadLookups() {
         const detail = customer.mobile ? ` · ${customer.mobile}` : "";
         customerSelect.add(new Option(`${customer.name}${detail}`, String(customer.id)));
     }
+    customerSelect.value = selectedCustomerId;
+    selectCustomer();
 }
 
 function refreshItemProductOptions() {
@@ -1420,10 +1485,14 @@ function localDateISO(date = new Date()) {
 function resetForm() {
     form.reset();
     editingBillId = null;
+    formSavedBillData = null;
+    savedBillSnapshot = null;
     addedItems = [];
     renderAddedItems();
     document.querySelector("#create-title").textContent = "Create a new bill";
     document.querySelector("#save-button").textContent = "Save bill";
+    document.querySelector("#billing-feedback").textContent = "";
+    document.querySelector("#saved-bill-form-feedback").textContent = "";
     customerSelect.value = "";
     selectCustomer();
     itemRows.replaceChildren();
@@ -1432,6 +1501,7 @@ function resetForm() {
     document.querySelector("#bill-number").value = makeBillNumber();
     setMessage("");
     updateTotals();
+    refreshSavedBillActions();
 }
 
 async function editBill(billId) {
@@ -1456,9 +1526,14 @@ async function editBill(billId) {
         document.querySelector("#create-title").textContent = `Edit bill ${bill.billNo}`;
         document.querySelector("#save-button").textContent = "Update bill";
         setMessage("");
+        document.querySelector("#billing-feedback").textContent = "";
+        document.querySelector("#saved-bill-form-feedback").textContent = "";
+        formSavedBillData = { ...bill, items: bill.items.map((item) => ({ ...item })) };
+        savedBillSnapshot = currentFormSnapshot();
+        refreshSavedBillActions();
         setNavigation("create");
     } catch (error) {
-        setOperationFeedback("#bill-feedback", `Could not load bill for editing: ${error.message}`, "error");
+        setOperationFeedback("#billing-feedback", `Could not load bill for editing: ${error.message}`, "error");
     }
 }
 
@@ -1540,6 +1615,7 @@ function previewBill() {
     document.querySelector("#preview-feedback").textContent = "";
     document.querySelector("#download-preview").disabled = false;
     document.querySelector("#share-preview").disabled = false;
+    document.querySelector("#email-preview").disabled = false;
     const container = document.querySelector("#preview-content");
     container.replaceChildren();
     const metadata = document.createElement("div");
@@ -1598,7 +1674,10 @@ function previewBill() {
 }
 
 document.querySelectorAll(".nav-button[data-page]").forEach((button) => {
-    button.addEventListener("click", () => setNavigation(button.dataset.page));
+    button.addEventListener("click", () => {
+        if (button.dataset.page === "create" && editingBillId !== null) resetForm();
+        setNavigation(button.dataset.page);
+    });
 });
 document.querySelectorAll("[data-go]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1615,30 +1694,41 @@ document.querySelector("#close-preview").addEventListener("click", () => {
 });
 document.querySelector("#print-preview").addEventListener("click", () => window.print());
 document.querySelector("#print-saved-bill").addEventListener("click", () => window.print());
-async function shareBillPdf(bill, button, feedback) {
+async function shareBillPdf(bill, button, feedback, channel) {
+    const wasDisabled = button.disabled;
     button.disabled = true;
     feedback.textContent = "";
     try {
         const result = await window.BillPdf.share(bill);
         if (result === "shared") {
-            feedback.textContent = "PDF shared. Choose WhatsApp from the share menu.";
+            feedback.textContent = channel === "email"
+                ? "PDF shared. Choose your email app from the share menu."
+                : "PDF shared. Choose WhatsApp from the share menu.";
             showToast(feedback.textContent);
         } else if (result === "downloaded") {
-            feedback.textContent = "PDF downloaded. Attach it in WhatsApp.";
+            feedback.textContent = channel === "email"
+                ? "PDF downloaded. Attach it to your email."
+                : "PDF downloaded. Attach it in WhatsApp.";
             showToast(feedback.textContent);
         }
     } catch (error) {
         feedback.textContent = `Could not share PDF: ${error.message}`;
         showToast(error.message, "error");
     } finally {
-        button.disabled = button.id === "share-saved-bill" && !savedBillData;
+        button.disabled = wasDisabled;
     }
 }
 document.querySelector("#share-preview").addEventListener("click", (event) => {
-    shareBillPdf(previewBillData, event.currentTarget, document.querySelector("#preview-feedback"));
+    shareBillPdf(previewBillData, event.currentTarget, document.querySelector("#preview-feedback"), "whatsapp");
 });
 document.querySelector("#share-saved-bill").addEventListener("click", (event) => {
-    shareBillPdf(savedBillData, event.currentTarget, document.querySelector("#bill-detail-feedback"));
+    shareBillPdf(savedBillData, event.currentTarget, document.querySelector("#bill-detail-feedback"), "whatsapp");
+});
+document.querySelector("#email-preview").addEventListener("click", (event) => {
+    shareBillPdf(previewBillData, event.currentTarget, document.querySelector("#preview-feedback"), "email");
+});
+document.querySelector("#email-saved-bill").addEventListener("click", (event) => {
+    shareBillPdf(savedBillData, event.currentTarget, document.querySelector("#bill-detail-feedback"), "email");
 });
 document.querySelector("#download-preview").addEventListener("click", async (event) => {
     const button = event.currentTarget;
@@ -1670,10 +1760,30 @@ document.querySelector("#download-saved-bill").addEventListener("click", async (
         button.disabled = !savedBillData;
     }
 });
+document.querySelector("#download-form-saved-bill").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const feedback = document.querySelector("#saved-bill-form-feedback");
+    button.disabled = true;
+    feedback.textContent = "";
+    try {
+        await window.BillPdf.download(formSavedBillData);
+        showToast("Bill PDF downloaded.");
+    } catch (error) {
+        feedback.textContent = `Could not create PDF: ${error.message}`;
+        showToast(error.message, "error");
+    } finally {
+        button.disabled = false;
+    }
+});
+document.querySelector("#share-form-saved-bill").addEventListener("click", (event) => {
+    shareBillPdf(formSavedBillData, event.currentTarget, document.querySelector("#saved-bill-form-feedback"), "whatsapp");
+});
 document.querySelector("#close-bill-details").addEventListener("click", () => {
     document.querySelector("#bill-detail-dialog").close();
 });
 document.querySelector("#clear-button").addEventListener("click", resetForm);
+form.addEventListener("input", refreshSavedBillActions);
+form.addEventListener("change", refreshSavedBillActions);
 document.querySelector("#bill-search").addEventListener("input", (event) => {
     loadBills(event.target.value.trim());
 });
@@ -1690,18 +1800,19 @@ document.querySelector("#customer-previous-page").addEventListener("click", () =
 document.querySelector("#customer-next-page").addEventListener("click", () => {
     loadCustomerDirectory(customerDirectoryQuery, customerDirectoryPage + 1);
 });
-/* Product catalog page controls are paused; keep handlers for later restoration.
 document.querySelector("#product-search").addEventListener("input", (event) => {
     window.clearTimeout(productSearchTimer);
     productSearchTimer = window.setTimeout(
-        () => loadProductDirectory(event.target.value.trim()),
+        () => loadProductDirectory(event.target.value.trim(), 1),
         250,
     );
 });
-document.querySelector("#new-product-button").addEventListener("click", () => {
-    openDirectoryForm("product");
+document.querySelector("#product-previous-page").addEventListener("click", () => {
+    loadProductDirectory(productDirectoryQuery, productDirectoryPage - 1);
 });
-*/
+document.querySelector("#product-next-page").addEventListener("click", () => {
+    loadProductDirectory(productDirectoryQuery, productDirectoryPage + 1);
+});
 document.querySelector("#new-customer-button").addEventListener("click", () => {
     openDirectoryForm("customer");
 });
@@ -1788,29 +1899,46 @@ form.addEventListener("submit", async (event) => {
     button.textContent = "Saving…";
     const isEditing = editingBillId !== null;
     const endpoint = isEditing ? `/api/bills/${encodeURIComponent(editingBillId)}` : "/api/bills";
+    const payload = {
+        billNo: document.querySelector("#bill-number").value.trim(),
+        billDate: document.querySelector("#bill-date").value,
+        dueDate: document.querySelector("#due-date").value || null,
+        customerId: customerSelect.value || null,
+        customerName: customer.name,
+        customerMobile: customer.mobile || null,
+        customerAddress: customer.address || null,
+        paid,
+        items,
+    };
     try {
         const result = await api(endpoint, {
             method: isEditing ? "PUT" : "POST",
-            body: JSON.stringify({
-                billNo: document.querySelector("#bill-number").value.trim(),
-                billDate: document.querySelector("#bill-date").value,
-                dueDate: document.querySelector("#due-date").value || null,
-                customerId: customerSelect.value || null,
-                customerName: customer.name,
-                customerMobile: customer.mobile || null,
-                customerAddress: customer.address || null,
-                paid,
-                items,
-            }),
+            body: JSON.stringify(payload),
         });
         const savedBillNo = result.billNo;
-        resetForm();
-        setOperationFeedback("#bill-feedback", `Bill ${savedBillNo} ${isEditing ? "updated" : "saved"} successfully.`, "success");
+        editingBillId = Number(result.id);
+        if (!Number.isSafeInteger(editingBillId) || editingBillId < 1) {
+            throw new Error("The bill was saved, but the server did not return a valid bill ID.");
+        }
+        document.querySelector("#create-title").textContent = `Edit bill ${savedBillNo}`;
+        document.querySelector("#save-button").textContent = "Update bill";
+        formSavedBillData = {
+            id: editingBillId,
+            ...payload,
+            total,
+            due: total - paid,
+            items: items.map((item) => ({ ...item })),
+        };
+        savedBillSnapshot = currentFormSnapshot();
+        document.querySelector("#saved-bill-form-feedback").textContent = "";
+        refreshSavedBillActions();
+        setMessage("");
+        setOperationFeedback("#billing-feedback", `Bill ${savedBillNo} ${isEditing ? "updated" : "saved"} successfully.`, "success");
         try {
             await Promise.all([loadDashboard(), loadBills(document.querySelector("#bill-search").value.trim()), loadLookups()]);
         } catch (error) {
             setOperationFeedback(
-                "#bill-feedback",
+                "#billing-feedback",
                 `Bill ${savedBillNo} was saved, but billing lookups could not refresh: ${error.message}`,
                 "error",
             );

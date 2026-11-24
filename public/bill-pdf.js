@@ -365,20 +365,11 @@
         doc.save(fileName(bill));
     }
 
-    function shareText(bill) {
-        const total = currency.format(Number(bill.total) || 0);
-        const due = currency.format(Number(bill.due) || 0);
-        return `${shopInfo.name}\nBill ${bill.billNo}\nTotal: ${total}\nBalance due: ${due}`;
-    }
-
     async function share(bill) {
         const canShareFile = typeof File === "function"
             && typeof navigator.share === "function"
             && typeof navigator.canShare === "function"
             && navigator.canShare({ files: [new File([], "bill.pdf", { type: "application/pdf" })] });
-        if (!canShareFile) {
-            window.open(`https://wa.me/?text=${encodeURIComponent(shareText(bill))}`, "_blank", "noopener,noreferrer");
-        }
 
         const doc = await createDocument(bill);
         const name = fileName(bill);
@@ -389,7 +380,6 @@
                     await navigator.share({
                         files: [file],
                         title: `Bill ${bill.billNo}`,
-                        text: shareText(bill),
                     });
                     return "shared";
                 } catch (error) {

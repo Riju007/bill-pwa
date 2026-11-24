@@ -36,16 +36,17 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
     expect(manifest.short_name).toBe("PB Ledger");
     expect((await page.request.get("/css/app.css")).ok()).toBeTruthy();
     expect((await page.request.get("/icons/pb-ledger.svg")).ok()).toBeTruthy();
-    for (const pageName of ["dashboard", "billing", "bills", "customers"]) {
+    for (const pageName of ["dashboard", "billing", "bills", "customers", "products"]) {
         expect((await page.request.get(`/pages/${pageName}.html`)).ok()).toBeTruthy();
     }
     const productPageResponse = await page.request.get("/pages/products.html");
     expect(productPageResponse.ok()).toBeTruthy();
     expect(await productPageResponse.text()).toContain('id="page-products"');
     await expect(page.locator("#page-dashboard")).toBeAttached();
-    await expect(page.locator("#page-products")).toHaveCount(0);
+    await expect(page.locator("#page-products")).toBeAttached();
     await expect(page.locator("#latest-products")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Products" })).toHaveCount(0);
+    await expect(page.locator('.sidebar .nav-button[data-page="products"]')).toHaveText("Items");
+    await expect(page.locator("#new-product-button")).toHaveCount(0);
     const sidebarToggle = page.locator("#sidebar-toggle");
     await expect(sidebarToggle).toHaveAttribute("aria-expanded", "true");
     await sidebarToggle.click();
@@ -97,6 +98,22 @@ test("loads the PB Ledger shell, page templates, local framework, and install ic
         "Rupees One Thousand Two Hundred Fifty and Paise Fifty Only",
         "Rupees Ninety Nine Arab Ninety Nine Crore Ninety Nine Lakh Ninety Nine Thousand Nine Hundred Ninety Nine Only",
     ]);
+});
+
+test("lists saved items with pagination and opens item details", async ({ page }) => {
+    await page.goto("/");
+    await page.locator('.sidebar [data-page="products"]').click();
+
+    await expect(page.locator("#product-list tr")).toHaveCount(10);
+    await expect(page.locator("#product-page-status")).toHaveText("Page 1 of 2");
+    await expect(page.locator("#new-product-button")).toHaveCount(0);
+    await page.locator("#product-next-page").click();
+    await expect(page.locator("#product-list tr")).toHaveCount(1);
+    await page.getByRole("button", { name: "View Sample Phone details" }).click();
+
+    await expect(page.locator("#product-detail-dialog")).toBeVisible();
+    await expect(page.locator("#product-detail-content")).toContainText("P001");
+    await expect(page.locator("#product-detail-content")).toContainText("Sample Phone");
 });
 
 test("adds, edits, and deletes manually entered bill items", async ({ page }) => {
@@ -275,7 +292,16 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
         Object.defineProperty(navigator, "share", {
             configurable: true,
             value: async (data: { files: File[] }) => {
-                (window as Window & { sharedPdfName?: string }).sharedPdfName = data.files[0].name;
+                const shareWindow = window as Window & {
+                    sharedPdfName?: string;
+                    sharedPdfType?: string;
+                    sharedPdfSize?: number;
+                    sharedPayloadKeys?: string[];
+                };
+                shareWindow.sharedPdfName = data.files[0].name;
+                shareWindow.sharedPdfType = data.files[0].type;
+                shareWindow.sharedPdfSize = data.files[0].size;
+                shareWindow.sharedPayloadKeys = Object.keys(data);
             },
         });
     });
@@ -283,10 +309,82 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     await expect(page.locator("#preview-feedback")).toHaveText("PDF shared. Choose WhatsApp from the share menu.");
     expect(await page.evaluate(() => (window as Window & { sharedPdfName?: string }).sharedPdfName))
         .toBe("pb-ledger-DRAFT-100.pdf");
+    const sharedPayload = await page.evaluate(() => {
+        const shareWindow = window as Window & {
+            sharedPdfType?: string;
+            sharedPdfSize?: number;
+            sharedPayloadKeys?: string[];
+        };
+        return {
+            type: shareWindow.sharedPdfType,
+            size: shareWindow.sharedPdfSize,
+            keys: shareWindow.sharedPayloadKeys,
+        };
+    });
+    expect(sharedPayload.type).toBe("application/pdf");
+    expect(sharedPayload.size).toBeGreaterThan(0);
+    expect(sharedPayload.keys).toContain("files");
+    expect(sharedPayload.keys).not.toContain("text");
+    await page.locator("#email-preview").click();
+    await expect(page.locator("#preview-feedback")).toHaveText("PDF shared. Choose your email app from the share menu.");
+    const emailPayload = await page.evaluate(() => {
+        const shareWindow = window as Window & {
+            sharedPdfName?: string;
+            sharedPdfType?: string;
+            sharedPdfSize?: number;
+            sharedPayloadKeys?: string[];
+        };
+        return {
+            name: shareWindow.sharedPdfName,
+            type: shareWindow.sharedPdfType,
+            size: shareWindow.sharedPdfSize,
+            keys: shareWindow.sharedPayloadKeys,
+        };
+    });
+    expect(emailPayload.name).toBe("pb-ledger-DRAFT-100.pdf");
+    expect(emailPayload.type).toBe("application/pdf");
+    expect(emailPayload.size).toBeGreaterThan(0);
+    expect(emailPayload.keys).toContain("files");
+    expect(emailPayload.keys).not.toContain("text");
 
     await page.emulateMedia({ media: "print" });
     await expect(page.locator("#preview-dialog")).toBeVisible();
     await expect(page.locator("#preview-dialog .bill-output-actions")).toHaveCSS("display", "none");
+});
+
+test("downloads the PDF without opening an unattached email draft when file sharing is unavailable", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+        Object.defineProperty(navigator, "canShare", { configurable: true, value: () => false });
+        Object.defineProperty(navigator, "share", { configurable: true, value: undefined });
+        Object.defineProperty(window, "open", {
+            configurable: true,
+            value: () => {
+                (window as Window & { emailDraftOpened?: boolean }).emailDraftOpened = true;
+                return null;
+            },
+        });
+    });
+    const downloadPromise = page.waitForEvent("download");
+    const result = await page.evaluate(async () => {
+        const pdfWindow = window as Window & {
+            BillPdf: { share: (bill: Record<string, unknown>) => Promise<string> };
+        };
+        return pdfWindow.BillPdf.share({
+            billNo: "EMAIL-100",
+            billDate: "2026-11-24",
+            customerName: "Sample Customer",
+            customerAddress: "Example Road",
+            items: [{ productName: "Sample Phone", productCode: "P001", imei: "123456789012345", amount: 1250 }],
+            total: 1250,
+            paid: 0,
+            due: 1250,
+        });
+    });
+    const download = await downloadPromise;
+    expect(result).toBe("downloaded");
+    expect(download.suggestedFilename()).toBe("pb-ledger-EMAIL-100.pdf");
+    expect(await page.evaluate(() => (window as Window & { emailDraftOpened?: boolean }).emailDraftOpened)).toBeUndefined();
 });
 
 test("downloads saved bills with multiple pages", async ({ page }) => {
@@ -465,6 +563,53 @@ test("refreshes the bill summary when editing a saved bill", async ({ page }) =>
     await expect(page.locator("#bill-total")).toHaveText("₹48,000.00");
     await expect(page.locator("#paid-amount")).toHaveValue("10000");
     await expect(page.locator("#bill-due")).toHaveText("₹38,000.00");
+});
+
+test("keeps a saved bill on the billing page and shows PDF actions only while unchanged", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Create a bill" }).click();
+    await page.locator("#customer-select").selectOption("1");
+    const billNo = await page.locator("#bill-number").inputValue();
+    await page.locator("#add-item").click();
+    await page.locator('#item-rows input[data-field="productName"]').fill("Saved Phone");
+    await page.locator('#item-rows input[data-field="productCode"]').fill("SAVE-1");
+    await page.locator('#item-rows input[data-field="imei"]').fill("123456789012345");
+    await page.locator('#item-rows input[data-field="amount"]').fill("1500");
+    await page.locator("#item-rows .draft-action.accept").click();
+    await page.locator("#save-button").click();
+
+    await expect(page.locator("#create-title")).toHaveText(`Edit bill ${billNo}`);
+    await expect(page.locator("#page-create")).toHaveClass(/active/);
+    await expect(page.locator("#save-button")).toHaveText("Update bill");
+    await expect(page.locator("#added-items-body")).toContainText("Saved Phone");
+    await expect(page.locator("#saved-bill-form-actions")).toBeVisible();
+    await expect(page.locator("#download-form-saved-bill")).toBeVisible();
+    await expect(page.locator("#share-form-saved-bill")).toBeVisible();
+
+    await page.locator("#paid-amount").fill("500");
+    await expect(page.locator("#saved-bill-form-actions")).toBeHidden();
+    await page.locator("#paid-amount").fill("0");
+    await expect(page.locator("#saved-bill-form-actions")).toBeVisible();
+    await page.evaluate(() => {
+        Object.defineProperty(navigator, "canShare", {
+            configurable: true,
+            value: (data: { files?: File[] }) => Boolean(data.files?.length),
+        });
+        Object.defineProperty(navigator, "share", {
+            configurable: true,
+            value: async (data: { files: File[] }) => {
+                (window as Window & { formSharedPdfName?: string }).formSharedPdfName = data.files[0].name;
+            },
+        });
+    });
+    await page.locator("#share-form-saved-bill").click();
+    await expect(page.locator("#saved-bill-form-feedback")).toHaveText("PDF shared. Choose WhatsApp from the share menu.");
+    expect(await page.evaluate(() => (window as Window & { formSharedPdfName?: string }).formSharedPdfName))
+        .toBe(`pb-ledger-${billNo}.pdf`);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.locator("#download-form-saved-bill").click();
+    expect((await downloadPromise).suggestedFilename()).toBe(`pb-ledger-${billNo}.pdf`);
 });
 
 test("suggests saved product names and codes below their inputs without restricting manual entry", async ({ page }) => {

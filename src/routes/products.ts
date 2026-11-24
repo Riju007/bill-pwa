@@ -61,6 +61,27 @@ export async function handleProducts(request: Request, env: Env): Promise<Respon
         if (request.method === "GET") {
             const q = url.searchParams.get("q")?.trim();
             const base = "SELECT id, code, name FROM products";
+            const pageParam = url.searchParams.get("page");
+            if (pageParam !== null) {
+                if (!/^[1-9]\d*$/.test(pageParam) || !Number.isSafeInteger(Number(pageParam))) {
+                    return json({ error: "page must be a positive integer" }, 400);
+                }
+                const pageSize = 10;
+                const filter = q ? " WHERE code = ? OR name LIKE ?" : "";
+                const filterValues = q ? [q, `%${q}%`] : [];
+                const count = await env.DB
+                    .prepare(`SELECT COUNT(*) AS total FROM products${filter}`)
+                    .bind(...filterValues)
+                    .all();
+                const total = Number(count.results[0]?.total ?? 0);
+                const pageCount = Math.max(1, Math.ceil(total / pageSize));
+                const page = Math.min(Number(pageParam), pageCount);
+                const { results } = await env.DB
+                    .prepare(`${base}${filter} ORDER BY id DESC LIMIT ? OFFSET ?`)
+                    .bind(...filterValues, pageSize, (page - 1) * pageSize)
+                    .all();
+                return json({ items: results, page, pageSize, total, pageCount });
+            }
             const stmt = q
                 ? env.DB
                     .prepare(`${base} WHERE code = ? OR name LIKE ? ORDER BY id DESC LIMIT 100`)

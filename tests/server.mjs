@@ -14,6 +14,14 @@ const customer = {
 };
 const customers = [customer];
 const product = { id: 1, code: "P001", name: "Sample Phone" };
+const products = [
+    product,
+    ...Array.from({ length: 10 }, (_, index) => ({
+        id: index + 2,
+        code: `P${String(index + 2).padStart(3, "0")}`,
+        name: `Saved Item ${index + 2}`,
+    })),
+];
 const bill = {
     id: 7,
     billNo: "INV-40",
@@ -160,7 +168,31 @@ const server = createServer(async (request, response) => {
         return;
     }
     if (url.pathname === "/api/products") {
-        json(response, [product]);
+        const query = url.searchParams.get("q")?.trim().toLowerCase();
+        const results = [...products]
+            .reverse()
+            .filter((entry) => !query || entry.code.toLowerCase() === query || entry.name.toLowerCase().includes(query));
+        const pageParam = url.searchParams.get("page");
+        if (pageParam) {
+            const pageSize = 10;
+            const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
+            const page = Math.min(Number(pageParam), pageCount);
+            json(response, {
+                items: results.slice((page - 1) * pageSize, page * pageSize),
+                page,
+                pageSize,
+                total: results.length,
+                pageCount,
+            });
+        } else {
+            json(response, results.slice(0, 100));
+        }
+        return;
+    }
+    const productMatch = /^\/api\/products\/(\d+)$/.exec(url.pathname);
+    if (productMatch && request.method === "GET") {
+        const entry = products.find((candidate) => candidate.id === Number(productMatch[1]));
+        json(response, entry || { error: "Product not found" }, entry ? 200 : 404);
         return;
     }
     if (url.pathname === "/api/bills/product-codes") {

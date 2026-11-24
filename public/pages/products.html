@@ -1,41 +1,41 @@
-<!-- Product catalog temporarily paused; keep this page markup for later restoration.
 <section class="page" id="page-products" aria-labelledby="products-title">
                     <div class="page-heading">
                         <div>
-                            <p class="eyebrow">Catalog</p>
-                            <h1 id="products-title">Products</h1>
-                            <p class="subtitle">Browse saved products or search by product name or code.</p>
+                            <p class="eyebrow">Saved items</p>
+                            <h1 id="products-title">Items</h1>
+                            <p class="subtitle">Browse saved item names and product codes.</p>
                         </div>
                         <div class="list-toolbar directory-toolbar">
                             <label class="search-box">
-                                <input class="form-control" id="product-search" type="search" placeholder="Search products…" aria-label="Search products">
+                                <input class="form-control" id="product-search" type="search" placeholder="Search items…" aria-label="Search items">
                             </label>
-                            <button class="button primary btn" id="new-product-button" type="button">
-                                <i class="bi bi-box-seam" aria-hidden="true"></i>
-                                New product
-                            </button>
                         </div>
                     </div>
                     <p class="operation-feedback" id="product-feedback" role="status" aria-live="polite"></p>
-                    <section class="panel" aria-label="Product list">
+                    <section class="panel" aria-label="Saved items list">
                         <div class="panel-header">
-                            <h2>Product catalog</h2>
+                            <h2>Saved items</h2>
                             <span class="field-hint" id="product-count" role="status" aria-live="polite"></span>
                         </div>
                         <div class="table-wrap">
-                            <table>
+                            <table class="products-table">
                                 <thead>
                                     <tr>
                                         <th>Product code</th>
-                                        <th>Product name</th>
-                                        <th>Actions</th>
+                                        <th>Item name</th>
                                     </tr>
                                 </thead>
                                 <tbody id="product-list">
-                                    <tr><td class="empty-state loading" colspan="3">Loading products…</td></tr>
+                                    <tr><td class="empty-state loading" colspan="2">Loading items…</td></tr>
                                 </tbody>
                             </table>
                         </div>
+                        <div class="table-pagination" id="product-pagination" aria-label="Item list pagination" hidden>
+                            <span id="product-page-status" role="status" aria-live="polite"></span>
+                            <div>
+                                <button class="button secondary btn" id="product-previous-page" type="button" aria-label="Previous item page">Previous</button>
+                                <button class="button secondary btn" id="product-next-page" type="button" aria-label="Next item page">Next</button>
+                            </div>
+                        </div>
                     </section>
                 </section>
--->

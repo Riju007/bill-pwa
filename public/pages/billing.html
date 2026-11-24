@@ -8,6 +8,7 @@
                     </div>
 
                     <p class="required-note"><span class="required-mark" aria-hidden="true">*</span> Required field</p>
+                    <p class="operation-feedback" id="billing-feedback" role="status" aria-live="polite"></p>
                     <form id="bill-form" novalidate>
                         <div class="form-layout">
                             <div class="form-main">
@@ -120,6 +121,11 @@
                                     <button class="button primary btn" id="save-button" type="submit">Save bill</button>
                                     <button class="button danger" id="clear-button" type="button">Clear form</button>
                                 </div>
+                                <div class="summary-actions" id="saved-bill-form-actions" hidden>
+                                    <button class="button secondary btn" id="download-form-saved-bill" type="button"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Download PDF</button>
+                                    <button class="button secondary btn" id="share-form-saved-bill" type="button" title="Share the saved PDF using WhatsApp"><i class="bi bi-whatsapp" aria-hidden="true"></i> WhatsApp</button>
+                                </div>
+                                <p class="bill-output-feedback" id="saved-bill-form-feedback" role="status" aria-live="polite"></p>
                                 <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
                             </aside>
                         </div>
