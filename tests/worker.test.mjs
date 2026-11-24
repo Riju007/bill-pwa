@@ -4,6 +4,7 @@ import workerModule from "../src/index.ts";
 
 const worker = workerModule.default ?? workerModule;
 const env = {
+    LOGIN_DISABLED: "true",
     DB: {
         prepare() {
             throw new Error("Invalid requests should not query the database");
@@ -13,6 +14,7 @@ const env = {
 
 const loginEnv = {
     ...env,
+    LOGIN_DISABLED: undefined,
     LOGIN_USERNAME: "owner@example.test",
     LOGIN_PASSWORD: "test-password",
     LOGIN_SESSION_SECRET: "test-session-secret-that-is-long-enough",
@@ -23,6 +25,12 @@ test("health endpoint returns an OK status", async () => {
 
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { status: "ok" });
+});
+
+test("login fails closed without configuration", async () => {
+    const response = await worker.fetch(new Request("https://billwise.test/api/customers"), { DB: env.DB });
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), { error: "Login is not configured." });
 });
 
 test("login protects the API and creates a session for valid credentials", async () => {
@@ -48,6 +56,42 @@ test("login protects the API and creates a session for valid credentials", async
         headers: { cookie: login.headers.get("set-cookie").split(";")[0] },
     }), loginEnv);
     assert.deepEqual(await session.json(), { authenticated: true, configured: true });
+});
+
+test("login rejects tampered and expired session cookies", async () => {
+    const login = await worker.fetch(new Request("https://billwise.test/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "owner@example.test", password: "test-password" }),
+    }), loginEnv);
+    const cookie = login.headers.get("set-cookie").split(";")[0];
+    const [name, value] = cookie.split("=");
+    const tampered = `${name}=${value.slice(0, -1)}x`;
+    const tamperedResponse = await worker.fetch(new Request("https://billwise.test/api/dashboard", { headers: { cookie: tampered } }), loginEnv);
+    assert.equal(tamperedResponse.status, 401);
+
+    const expiredPayload = "owner@example.test|1";
+    const expiredSignature = await crypto.subtle.sign(
+        "HMAC",
+        await crypto.subtle.importKey("raw", new TextEncoder().encode(loginEnv.LOGIN_SESSION_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]),
+        new TextEncoder().encode(expiredPayload),
+    );
+    const expiredValue = `${expiredPayload}.${Buffer.from(expiredSignature).toString("base64url")}`;
+    const expiredResponse = await worker.fetch(new Request("https://billwise.test/api/dashboard", { headers: { cookie: `${name}=${expiredValue}` } }), loginEnv);
+    assert.equal(expiredResponse.status, 401);
+});
+
+test("login preserves leading and trailing password spaces", async () => {
+    const spacedPasswordEnv = {
+        ...loginEnv,
+        LOGIN_PASSWORD: " password with spaces ",
+    };
+    const response = await worker.fetch(new Request("https://billwise.test/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "owner@example.test", password: " password with spaces " }),
+    }), spacedPasswordEnv);
+    assert.equal(response.status, 200);
 });
 
 test("bill creation rejects an invalid date before accessing D1", async () => {
@@ -106,6 +150,7 @@ test("bill creation rejects duplicate IMEIs before accessing D1", async () => {
 
 test("bill creation accepts manually entered items outside the product catalog", async () => {
     const manualBillEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 return {
@@ -187,6 +232,7 @@ test("customer address is limited to 200 characters", async () => {
 
 test("customer creation saves a valid customer", async () => {
     const customerEnv = {
+        ...env,
         DB: {
             prepare() {
                 return {
@@ -221,6 +267,7 @@ test("customer creation saves a valid customer", async () => {
 
 test("customer details include their creation date", async () => {
     const customerEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 assert.match(query, /created_at AS createdAt/);
@@ -251,6 +298,7 @@ test("customer details include their creation date", async () => {
 
 test("customer directory returns the requested page with a total count", async () => {
     const customerEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 return {
@@ -290,6 +338,7 @@ test("customer directory returns the requested page with a total count", async (
 
 test("product directory returns the requested page with a total count", async () => {
     const productEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 return {
@@ -331,6 +380,7 @@ test("product directory rejects an invalid page before accessing D1", async () =
 
 test("item directory returns a paginated bill item with customer and bill fields", async () => {
     const itemEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 return {
@@ -378,6 +428,7 @@ test("item directory returns a paginated bill item with customer and bill fields
 
 test("item details include the associated customer and bill", async () => {
     const itemEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 assert.match(query, /WHERE bi\.id = \?/);
@@ -412,6 +463,7 @@ test("item details include the associated customer and bill", async () => {
 
 test("all bills directory returns a paginated result", async () => {
     const billEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 return {
@@ -448,6 +500,7 @@ test("all bills directory returns a paginated result", async () => {
 
 test("product code suggestions include saved catalog and bill item codes", async () => {
     const suggestionsEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 assert.match(query, /UNION/);
@@ -467,6 +520,7 @@ test("product code suggestions include saved catalog and bill item codes", async
 
 test("product name suggestions include catalog and previous bill items", async () => {
     const suggestionsEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 assert.match(query, /UNION/);
@@ -514,6 +568,7 @@ test("dashboard aggregates bills and items by customer", async () => {
         },
     ];
     const dashboardEnv = {
+        ...env,
         DB: {
             prepare(query) {
                 return {

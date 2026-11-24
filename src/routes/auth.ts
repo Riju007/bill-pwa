@@ -1,12 +1,12 @@
 import { json, readJson, text } from "../http";
 
-type AuthEnv = Env & Partial<Record<"LOGIN_USERNAME" | "LOGIN_PASSWORD" | "LOGIN_SESSION_SECRET", string>>;
+type AuthEnv = Env & Partial<Record<"LOGIN_USERNAME" | "LOGIN_PASSWORD" | "LOGIN_SESSION_SECRET" | "LOGIN_DISABLED", string>>;
 
 const SESSION_COOKIE = "pb_ledger_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 
-function configured(env: AuthEnv): boolean {
-    return Boolean(env.LOGIN_USERNAME || env.LOGIN_PASSWORD || env.LOGIN_SESSION_SECRET);
+function loginDisabled(env: AuthEnv): boolean {
+    return env.LOGIN_DISABLED === "true";
 }
 
 function configurationComplete(env: AuthEnv): boolean {
@@ -19,8 +19,21 @@ function base64Url(bytes: Uint8Array): string {
     return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
+function base64UrlBytes(value: string): Uint8Array | null {
+    try {
+        const padded = value.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+        return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
+    } catch {
+        return null;
+    }
+}
+
+async function hmacKey(secret: string, usages: KeyUsage[]): Promise<CryptoKey> {
+    return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, usages);
+}
+
 async function sign(value: string, secret: string): Promise<string> {
-    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const key = await hmacKey(secret, ["sign"]);
     return base64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value))));
 }
 
@@ -37,7 +50,10 @@ async function validSession(request: Request, env: AuthEnv): Promise<boolean> {
     if (separator < 1) return false;
     const payload = value.slice(0, separator);
     const signature = value.slice(separator + 1);
-    if (signature !== await sign(payload, env.LOGIN_SESSION_SECRET!)) return false;
+    const signatureBytes = base64UrlBytes(signature);
+    if (!signatureBytes) return false;
+    const key = await hmacKey(env.LOGIN_SESSION_SECRET!, ["verify"]);
+    if (!await crypto.subtle.verify("HMAC", key, signatureBytes, new TextEncoder().encode(payload))) return false;
     const expirySeparator = payload.lastIndexOf("|");
     if (expirySeparator < 1) return false;
     const username = payload.slice(0, expirySeparator);
@@ -50,8 +66,8 @@ function sessionCookie(value: string, maxAge: number): string {
 }
 
 export async function requireAuthentication(request: Request, env: AuthEnv): Promise<Response | null> {
-    if (!configured(env)) return null;
-    if (!configurationComplete(env)) return json({ error: "Login configuration is incomplete." }, 503);
+    if (loginDisabled(env)) return null;
+    if (!configurationComplete(env)) return json({ error: "Login is not configured." }, 503);
     return await validSession(request, env) ? null : json({ error: "Please log in to continue." }, 401);
 }
 
@@ -60,8 +76,8 @@ export async function handleAuth(request: Request, env: AuthEnv): Promise<Respon
     if (!url.pathname.startsWith("/api/auth/")) return null;
 
     if (url.pathname === "/api/auth/session" && request.method === "GET") {
-        if (!configured(env)) return json({ authenticated: true, configured: false });
-        if (!configurationComplete(env)) return json({ authenticated: false, configured: true, error: "Login configuration is incomplete." }, 503);
+        if (loginDisabled(env)) return json({ authenticated: true, configured: false });
+        if (!configurationComplete(env)) return json({ authenticated: false, configured: false, error: "Login is not configured." }, 503);
         return json({ authenticated: await validSession(request, env), configured: true });
     }
 
@@ -70,8 +86,8 @@ export async function handleAuth(request: Request, env: AuthEnv): Promise<Respon
         const parsed = await readJson(request);
         if (!parsed.ok) return json({ error: parsed.error }, 400);
         const username = text(parsed.value.username);
-        const password = text(parsed.value.password);
-        if (!username || !password || username !== env.LOGIN_USERNAME || password !== env.LOGIN_PASSWORD) {
+        const password = typeof parsed.value.password === "string" ? parsed.value.password : null;
+        if (!username || password === null || username !== env.LOGIN_USERNAME || !await passwordMatches(password, env.LOGIN_PASSWORD!, env.LOGIN_SESSION_SECRET!)) {
             return json({ error: "Invalid username or password." }, 401);
         }
         const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
@@ -88,4 +104,12 @@ export async function handleAuth(request: Request, env: AuthEnv): Promise<Respon
     }
 
     return json({ error: "Not found" }, 404);
+}
+
+async function passwordMatches(password: string, configuredPassword: string, secret: string): Promise<boolean> {
+    const expected = await sign(configuredPassword, secret);
+    const expectedBytes = base64UrlBytes(expected);
+    if (!expectedBytes) return false;
+    const key = await hmacKey(secret, ["verify"]);
+    return crypto.subtle.verify("HMAC", key, expectedBytes, new TextEncoder().encode(password));
 }

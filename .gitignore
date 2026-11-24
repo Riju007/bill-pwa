@@ -12,6 +12,7 @@
 node_modules/
 .env*
 .dev.vars*
+personal/
 .wrangler/
 test-results/
 playwright-report/

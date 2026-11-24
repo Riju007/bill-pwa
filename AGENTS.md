@@ -94,7 +94,7 @@ Local D1 data is under `.wrangler/` and is separate from production. Do not appl
 - Never put real customer names, phone numbers, IMEIs, or addresses in source, tests, fixtures, commits, or logs. Use synthetic values.
 - Private owner details belong only in the local `personal/` folder; never commit them or copy them into new code/docs. Shop details currently live in `shopInfo` in `public/bill-pdf.js`.
 - `wrangler.jsonc` `vars` are public configuration, not secrets. Keep local secrets in ignored `.dev.vars`; use production secrets only when explicitly authorized.
-- No login currently protects `/api`; every route is public. Do not expose real customer data or deploy changes without the owner's explicit request.
+- Login protects `/api` using `LOGIN_USERNAME`, `LOGIN_PASSWORD`, and `LOGIN_SESSION_SECRET`. Missing or incomplete login configuration fails closed with a 503 response. `LOGIN_DISABLED=true` is a local-only opt-in for development and tests; do not set it in production. Do not expose real customer data or deploy changes without the owner's explicit request.
 - Default all D1 work to `--local`. Do not run `--remote`, `wrangler deploy`, or `wrangler secret put` unless explicitly asked.
 - Never edit an applied migration; add the next numbered migration. Do not hand-edit `worker-configuration.d.ts`, `public/vendor/`, or `package-lock.json`.
 - A push to `main` deploys through Workers Builds. Run the full test suite before suggesting a push.

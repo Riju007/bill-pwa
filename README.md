@@ -30,4 +30,4 @@ npm test
 
 ## Login setup
 
-Login is enabled when these three secrets are set in `.dev.vars` locally and as Worker secrets in production: `LOGIN_USERNAME`, `LOGIN_PASSWORD`, and `LOGIN_SESSION_SECRET`. The username value may be an email address. Generate a long random session secret; do not commit real values. The provided `.dev.vars` values are local placeholders only.
+Login requires these three secrets in `.dev.vars` locally and as Worker secrets in production: `LOGIN_USERNAME`, `LOGIN_PASSWORD`, and `LOGIN_SESSION_SECRET`. The API fails closed with a 503 response until all three are set. The username value may be an email address. Generate a long random session secret; do not commit real values. `LOGIN_DISABLED=true` bypasses login only for local development or tests and must never be set in production.
