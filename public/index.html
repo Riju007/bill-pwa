@@ -652,15 +652,18 @@
             grid-template-columns: minmax(0, 1fr) 310px;
             align-items: start;
             gap: 20px;
+            min-width: 0;
         }
 
         .form-main {
             display: grid;
             gap: 16px;
+            min-width: 0;
         }
 
         .form-card {
             padding: 22px;
+            min-width: 0;
         }
 
         .section-heading {
@@ -829,6 +832,63 @@
             font-weight: 800;
             letter-spacing: .04em;
             text-transform: uppercase;
+        }
+
+        .draft-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 7px;
+        }
+
+        .draft-action {
+            display: grid;
+            width: 38px;
+            min-height: 38px;
+            place-items: center;
+            border-radius: 9px;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .draft-action.accept {
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .draft-action.reject {
+            border: 1px solid #efb5ba;
+            color: var(--red);
+            background: #fff7f7;
+        }
+
+        .added-items-wrap {
+            margin-top: 13px;
+            min-width: 0;
+        }
+
+        .added-items-heading {
+            margin-bottom: 8px;
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .added-items-table th,
+        .added-items-table td {
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+
+        .remove-added-item {
+            border: 1px solid #efb5ba;
+            border-radius: 8px;
+            color: var(--red);
+            background: #fff7f7;
+            min-height: 34px;
+            min-width: 34px;
+            font-weight: 900;
         }
 
         .item-row select {
@@ -1522,6 +1582,12 @@
             background: #28191c;
         }
 
+        :root[data-theme="dark"] .draft-action.reject,
+        :root[data-theme="dark"] .remove-added-item {
+            border-color: #5a3036;
+            background: #28191c;
+        }
+
         :root[data-theme="dark"] .summary-card {
             border-color: #2c4935;
             background: linear-gradient(160deg, #111d16 20%, #14251a);
@@ -1771,13 +1837,32 @@
                                         </div>
                                     </div>
                                     <div class="items-head">
-                                        <span class="items-head-title">Item 1</span>
+                                        <span class="items-head-title">0 items</span>
                                         <button class="table-add-item" id="add-item" type="button" title="Add item" aria-label="Add item">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                                             Add item
                                         </button>
                                     </div>
                                     <div id="item-rows"></div>
+                                    <div class="added-items-wrap">
+                                        <div class="added-items-heading">Added items</div>
+                                        <div class="table-wrap">
+                                            <table class="added-items-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Product</th>
+                                                        <th>Code</th>
+                                                        <th>IMEI / serial</th>
+                                                        <th>Amount</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="added-items-body">
+                                                    <tr><td colspan="5" class="empty-state">No items added yet.</td></tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </section>
                             </div>
 
@@ -2073,6 +2158,7 @@
         const money = (value) => currency.format(Number(value) || 0);
         let customers = [];
         let products = [];
+        let addedItems = [];
         let customerSearchTimer;
         let productSearchTimer;
         let editingBillId = null;
@@ -2283,9 +2369,18 @@
             input.placeholder = placeholder;
             input.setAttribute("aria-label", placeholder);
             if (field === "amount") {
-                input.min = "0.01";
+                input.min = "1000";
+                input.max = "500000";
                 input.step = "0.01";
                 input.inputMode = "decimal";
+                input.required = true;
+                input.setAttribute("aria-required", "true");
+            }
+            if (field === "imei") {
+                input.minLength = 15;
+                input.maxLength = 15;
+                input.inputMode = "numeric";
+                input.pattern = "[0-9]{15}";
                 input.required = true;
                 input.setAttribute("aria-required", "true");
             }
@@ -2311,9 +2406,14 @@
             if (field === "productCode") {
                 input.maxLength = 20;
                 input.readOnly = true;
+                input.required = true;
+                input.setAttribute("aria-required", "true");
                 input.setAttribute("aria-label", "Selected product code");
             }
-            if (field === "imei") input.maxLength = 32;
+            if (field === "imei") {
+                input.maxLength = 15;
+                input.pattern = "[0-9]{15}";
+            }
             input.addEventListener("input", updateTotals);
             return input;
         }
@@ -2335,8 +2435,8 @@
             };
 
             addField("productName", "Product *", itemInput("productName", "Select a product"));
-            addField("productCode", "Product code", itemInput("productCode", "Auto-filled"));
-            addField("imei", "IMEI / serial", itemInput("imei", "Optional"));
+            addField("productCode", "Product code *", itemInput("productCode", "Auto-filled"));
+            addField("imei", "IMEI / serial *", itemInput("imei", "15 digits"));
             addField("amount", "Amount (₹) *", itemInput("amount", "0.00", "number"));
 
             const code = row.querySelector('[data-field="productCode"]');
@@ -2353,19 +2453,72 @@
             }
             imei.value = values.imei || "";
             amount.value = values.amount || "";
-            const remove = document.createElement("button");
-            remove.className = "remove-item";
-            remove.type = "button";
-            remove.setAttribute("aria-label", "Remove product");
-            remove.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg>';
-            remove.addEventListener("click", () => {
+            const actions = document.createElement("div");
+            actions.className = "draft-actions";
+            const accept = document.createElement("button");
+            accept.className = "draft-action accept";
+            accept.type = "button";
+            accept.setAttribute("aria-label", "Add item to table");
+            accept.title = "Add item";
+            accept.textContent = "✓";
+            accept.addEventListener("click", () => {
+                if (!name.value) {
+                    name.setAttribute("aria-invalid", "true");
+                    name.focus();
+                    setMessage("Select a product for the item.", "error");
+                    return;
+                }
+                if (!/^\d{15}$/.test(imei.value.trim())) {
+                    imei.setAttribute("aria-invalid", "true");
+                    imei.focus();
+                    setMessage("IMEI / serial must be exactly 15 numeric digits.", "error");
+                    return;
+                }
+                const itemAmount = Number(amount.value);
+                if (!Number.isFinite(itemAmount) || itemAmount < 1000 || itemAmount > 500000) {
+                    amount.setAttribute("aria-invalid", "true");
+                    amount.focus();
+                    setMessage("Amount must be between ₹1,000 and ₹5,00,000.", "error");
+                    return;
+                }
+                const product = products.find((entry) => String(entry.id) === name.value);
+                if (!product) {
+                    name.setAttribute("aria-invalid", "true");
+                    name.focus();
+                    setMessage("Select an existing product.", "error");
+                    return;
+                }
+                if (!product.code) {
+                    code.setAttribute("aria-invalid", "true");
+                    code.focus();
+                    setMessage("The selected product must have a product code.", "error");
+                    return;
+                }
+                addedItems.push({
+                    productCode: product.code,
+                    productName: product.name,
+                    imei: imei.value.trim(),
+                    amount: itemAmount,
+                });
                 row.remove();
-                if (itemRows.children.length === 0) addItem();
+                setMessage("");
+                renderAddedItems();
                 updateTotals();
                 updateItemLabels();
-                if (form.dataset.validationAttempted === "true") validateFormFields(form, false, false);
             });
-            row.append(remove);
+            const reject = document.createElement("button");
+            reject.className = "draft-action reject";
+            reject.type = "button";
+            reject.setAttribute("aria-label", "Remove item entry");
+            reject.title = "Cancel entry";
+            reject.textContent = "×";
+            reject.addEventListener("click", () => {
+                row.remove();
+                updateItemLabels();
+                setMessage("");
+            });
+            actions.append(accept, reject);
+            row.append(actions);
             itemRows.append(row);
             updateTotals();
             updateItemLabels();
@@ -2375,24 +2528,52 @@
         function updateItemLabels() {
             const title = document.querySelector(".items-head-title");
             if (title) {
-                const count = itemRows.children.length;
-                title.textContent = count === 1 ? "1 item" : `${count} items`;
+                title.textContent = addedItems.length === 1 ? "1 item" : `${addedItems.length} items`;
             }
         }
 
+        function renderAddedItems() {
+            const body = document.querySelector("#added-items-body");
+            body.replaceChildren();
+            if (!addedItems.length) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = 5;
+                cell.className = "empty-state";
+                cell.textContent = "No items added yet.";
+                row.append(cell);
+                body.append(row);
+                updateItemLabels();
+                return;
+            }
+            for (let index = 0; index < addedItems.length; index++) {
+                const item = addedItems[index];
+                const row = document.createElement("tr");
+                appendCell(row, item.productName);
+                appendCell(row, item.productCode || "—");
+                appendCell(row, item.imei);
+                appendCell(row, money(item.amount));
+                const actionCell = document.createElement("td");
+                const remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "remove-added-item";
+                remove.setAttribute("aria-label", `Delete ${item.productName}`);
+                remove.title = "Delete item";
+                remove.textContent = "×";
+                remove.addEventListener("click", () => {
+                    addedItems.splice(index, 1);
+                    renderAddedItems();
+                    updateTotals();
+                });
+                actionCell.append(remove);
+                row.append(actionCell);
+                body.append(row);
+            }
+            updateItemLabels();
+        }
+
         function readItems() {
-            return [...itemRows.querySelectorAll(".item-row")].map((row) => {
-                const nameControl = row.querySelector('[data-field="productName"]');
-                const product = nameControl.tagName === "SELECT"
-                    ? products.find((entry) => String(entry.id) === nameControl.value)
-                    : null;
-                return {
-                    productCode: row.querySelector('[data-field="productCode"]').value.trim(),
-                    productName: product?.name || (nameControl.tagName === "SELECT" ? "" : nameControl.value.trim()),
-                    imei: row.querySelector('[data-field="imei"]').value.trim(),
-                    amount: Number(row.querySelector('[data-field="amount"]').value),
-                };
-            }).filter((item) => item.productName || item.amount);
+            return addedItems.map((item) => ({ ...item }));
         }
 
         function updateTotals() {
@@ -2925,6 +3106,8 @@
         function resetForm() {
             form.reset();
             editingBillId = null;
+            addedItems = [];
+            renderAddedItems();
             document.querySelector("#create-title").textContent = "Create a new bill";
             document.querySelector("#save-button").textContent = "Save bill";
             customerSelect.value = "";
@@ -2953,7 +3136,9 @@
                 selectCustomer();
                 document.querySelector("#paid-amount").value = bill.paid;
                 itemRows.replaceChildren();
-                for (const item of bill.items) addItem(item);
+                addedItems = bill.items.map((item) => ({ ...item }));
+                renderAddedItems();
+                addItem();
                 document.querySelector("#create-title").textContent = `Edit bill ${bill.billNo}`;
                 document.querySelector("#save-button").textContent = "Update bill";
                 setMessage("");
@@ -2994,7 +3179,15 @@
             }
             const items = readItems();
             if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
-                setMessage("Add a product name and valid amount for each item.", "error");
+                setMessage("Add at least one item and use ✓ to confirm it.", "error");
+                return;
+            }
+            if (items.some((item) => !/^\d{15}$/.test(item.imei))) {
+                setMessage("IMEI / serial must be exactly 15 numeric digits.", "error");
+                return;
+            }
+            if (items.some((item) => item.amount < 1000 || item.amount > 500000)) {
+                setMessage("Item amount must be between ₹1,000 and ₹5,00,000.", "error");
                 return;
             }
             const total = items.reduce((sum, item) => sum + item.amount, 0);
@@ -3143,7 +3336,15 @@
             }
             const items = readItems();
             if (!items.length || items.some((item) => !item.productName || !Number.isFinite(item.amount) || item.amount <= 0)) {
-                setMessage("Add a product name and valid amount for each item.", "error");
+                setMessage("Add at least one item and use ✓ to confirm it.", "error");
+                return;
+            }
+            if (items.some((item) => !/^\d{15}$/.test(item.imei))) {
+                setMessage("IMEI / serial must be exactly 15 numeric digits.", "error");
+                return;
+            }
+            if (items.some((item) => item.amount < 1000 || item.amount > 500000)) {
+                setMessage("Item amount must be between ₹1,000 and ₹5,00,000.", "error");
                 return;
             }
             const total = items.reduce((sum, item) => sum + item.amount, 0);
@@ -3190,7 +3391,6 @@
                         "error",
                     );
                 }
-                window.setTimeout(() => setNavigation("dashboard"), 650);
             } catch (error) {
                 setMessage(error.message, "error");
             } finally {

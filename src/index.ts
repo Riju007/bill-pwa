@@ -145,14 +145,14 @@ function parseBill(b: Record<string, unknown>): Parsed<BillInput> {
         if (!productName || productName.length > 100) {
             return { ok: false, error: "Each productName is required (max 100 characters)" };
         }
-        if (productCode && productCode.length > 20) {
-            return { ok: false, error: "productCode must be at most 20 characters" };
+        if (!productCode || productCode.length > 20) {
+            return { ok: false, error: "productCode is required (max 20 characters)" };
         }
-        if (imei && imei.length > 32) {
-            return { ok: false, error: "imei must be at most 32 characters" };
+        if (!imei || !/^\d{15}$/.test(imei)) {
+            return { ok: false, error: "imei must be exactly 15 numeric digits" };
         }
-        if (!Number.isFinite(amount) || amount <= 0) {
-            return { ok: false, error: "Each item amount must be greater than zero" };
+        if (!Number.isFinite(amount) || amount < 1000 || amount > 500000) {
+            return { ok: false, error: "Each item amount must be from 1000 to 500000" };
         }
         items.push({ productCode, productName, imei, amount });
     }
