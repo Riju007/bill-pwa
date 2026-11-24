@@ -1,11 +1,11 @@
 {
-  "name": "Billwise Billing Workspace",
-  "short_name": "Billwise",
-  "description": "Create and track bills for your business.",
+  "name": "PB Ledger - Pabitra Betal",
+  "short_name": "PB Ledger",
+  "description": "PB Ledger - billing and sales ledger for Pabitra Betal.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f6fb",
-  "theme_color": "#f5f6fb",
+  "background_color": "#f5f8f6",
+  "theme_color": "#f5f8f6",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -20,7 +20,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/billwise.svg",
+      "src": "/icons/pb-ledger.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"

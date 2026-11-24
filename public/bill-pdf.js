@@ -255,7 +255,7 @@
             doc.text(`Page ${page}`, pageWidth - margin, pageHeight - 7, { align: "right" });
         }
         const safeBillNo = String(bill.billNo || "bill").replace(/[^\w.-]+/g, "-");
-        doc.save(`billwise-${safeBillNo}.pdf`);
+        doc.save(`pb-ledger-${safeBillNo}.pdf`);
     }
 
     window.BillPdf = Object.freeze({ amountInWords, download, shopInfo });

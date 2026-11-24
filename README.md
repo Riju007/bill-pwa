@@ -1,6 +1,6 @@
-# Billwise
+# PB Ledger
 
-A mobile-friendly billing workspace built with a static HTML UI and a Cloudflare Worker API.
+A mobile-friendly billing workspace for Pabitra Betal, built with a static HTML UI and a Cloudflare Worker API.
 
 ## Structure
 

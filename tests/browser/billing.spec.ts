@@ -4,10 +4,17 @@ import { readFile } from "node:fs/promises";
 test("loads the shared layout, page templates, local framework, and install icons", async ({ page }) => {
     await page.goto("/");
 
+    await expect(page).toHaveTitle("PB Ledger | Pabitra Betal");
+    await expect(page.locator(".brand-name")).toHaveText("PB Ledger");
+    await expect(page.locator(".sidebar-note")).toHaveCount(0);
+    await expect(page.locator("#today-label")).toHaveCount(0);
     const manifestResponse = await page.request.get("/manifest.webmanifest");
     expect(manifestResponse.ok()).toBeTruthy();
     const manifest = await manifestResponse.json();
+    expect(manifest.name).toBe("PB Ledger - Pabitra Betal");
+    expect(manifest.short_name).toBe("PB Ledger");
     expect((await page.request.get("/css/app.css")).ok()).toBeTruthy();
+    expect((await page.request.get("/icons/pb-ledger.svg")).ok()).toBeTruthy();
     for (const pageName of ["dashboard", "billing", "bills", "customers", "products"]) {
         expect((await page.request.get(`/pages/${pageName}.html`)).ok()).toBeTruthy();
     }
@@ -15,6 +22,14 @@ test("loads the shared layout, page templates, local framework, and install icon
     await expect(page.locator("#page-products")).toBeAttached();
     await page.locator('.sidebar [data-page="products"]').click();
     await expect(page.locator("#page-products")).toBeVisible();
+    const primaryButton = page.locator("#page-dashboard .button.primary");
+    const initialTheme = await page.locator("html").getAttribute("data-theme");
+    const initialButtonColor = await primaryButton.evaluate((button) => getComputedStyle(button).backgroundColor);
+    await page.locator("#theme-toggle").click();
+    const toggledTheme = await page.locator("html").getAttribute("data-theme");
+    const toggledButtonColor = await primaryButton.evaluate((button) => getComputedStyle(button).backgroundColor);
+    expect(toggledTheme).not.toBe(initialTheme);
+    expect(toggledButtonColor).toBe(initialButtonColor);
     expect(manifest.icons.some((icon: { src: string }) => icon.src === "/icons/icon-192.png")).toBeTruthy();
     expect((await page.request.get("/icons/icon-192.png")).ok()).toBeTruthy();
     expect((await page.request.get("/vendor/bootstrap.min.css")).ok()).toBeTruthy();
@@ -57,7 +72,7 @@ test("previews a draft and downloads a readable PDF", async ({ page }) => {
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#download-preview").click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe("billwise-DRAFT-100.pdf");
+    expect(download.suggestedFilename()).toBe("pb-ledger-DRAFT-100.pdf");
     const path = await download.path();
     expect(path).toBeTruthy();
     const pdf = await readFile(path!);
@@ -81,7 +96,7 @@ test("downloads saved bills with multiple pages", async ({ page }) => {
     const downloadPromise = page.waitForEvent("download");
     await page.locator("#download-saved-bill").click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe("billwise-INV-40.pdf");
+    expect(download.suggestedFilename()).toBe("pb-ledger-INV-40.pdf");
     const path = await download.path();
     expect(path).toBeTruthy();
     const pdf = await readFile(path!);

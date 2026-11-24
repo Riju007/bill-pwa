@@ -28,7 +28,7 @@ function setTheme(theme, persist = false) {
     themeToggle.innerHTML = dark
         ? '<i class="bi bi-sun" aria-hidden="true"></i><span class="theme-toggle-label">Light theme</span>'
         : '<i class="bi bi-moon" aria-hidden="true"></i><span class="theme-toggle-label">Dark theme</span>';
-    document.querySelector('meta[name="theme-color"]').content = dark ? "#09120d" : "#f5f6fb";
+    document.querySelector('meta[name="theme-color"]').content = dark ? "#09120d" : "#f5f8f6";
     if (persist) localStorage.setItem("billwise-theme", dark ? "dark" : "light");
 }
 
@@ -1346,13 +1346,6 @@ document.querySelector("#confirm-dialog").addEventListener("cancel", (event) => 
     resolveDeletion(false);
 });
 
-const today = new Date();
-document.querySelector("#today-label").textContent = new Intl.DateTimeFormat("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-}).format(today);
 resetForm();
 loadDashboard();
 loadLookups().catch((error) => setMessage(`Could not load customers and products: ${error.message}`, "error"));
